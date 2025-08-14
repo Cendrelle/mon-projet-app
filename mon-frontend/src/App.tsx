@@ -1,23 +1,48 @@
-import { useState } from 'react';
-import './App.css';
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Index from "./pages/Index";
+import Dashboard from "./pages/Dashboard";
+import KitchenInterface from "./pages/KitchenInterface";
+import Profile from "./pages/Profile";
+import NotFound from "./pages/NotFound";
+import ProtectedRoute from "./components/ProtectedRoute";
 
-type Props = {
-  name: string;
-};
+const queryClient = new QueryClient();
 
-function Welcome({ name }: Props) {
-  return <h1>Hello {name}</h1>;
-}
-
-function App() {
-  const [username, setUsername] = useState<string>('Cendrelle');
-
-  return (
-    <div>
-      <Welcome name={username} />
-      <button onClick={() => setUsername('Faizoun')}>Changer le nom</button>
-    </div>
-  );
-}
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <TooltipProvider>
+      <Toaster />
+      <Sonner />
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Index />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route 
+            path="/dashboard" 
+            element={
+              <ProtectedRoute role="admin">
+                <Dashboard />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/kitchen" 
+            element={
+              <ProtectedRoute role="kitchen">
+                <KitchenInterface />
+              </ProtectedRoute>
+            } 
+          />
+          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </BrowserRouter>
+    </TooltipProvider>
+  </QueryClientProvider>
+);
 
 export default App;

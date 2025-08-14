@@ -1,3 +1,4 @@
+
 import { MenuItem, Restaurant } from '@/types/restaurant';
 
 export const restaurantInfo: Restaurant = {
@@ -18,6 +19,7 @@ export const menuItems: MenuItem[] = [
     category: 'Entrées',
     image: '/images/escargots.jpg',
     allergens: ['gluten', 'lactose'],
+    sides: ['pain grillé', 'salade verte'],
     isAvailable: true
   },
   {
@@ -27,6 +29,7 @@ export const menuItems: MenuItem[] = [
     price: 8.50,
     category: 'Entrées',
     allergens: ['lactose', 'gluten'],
+    sides: ['croûtons', 'fromage râpé'],
     isAvailable: true
   },
   {
@@ -36,6 +39,7 @@ export const menuItems: MenuItem[] = [
     price: 10.00,
     category: 'Entrées',
     allergens: ['lactose'],
+    sides: ['noix', 'vinaigrette miel', 'croûtons'],
     isAvailable: true
   },
   
@@ -88,6 +92,7 @@ export const menuItems: MenuItem[] = [
     price: 7.50,
     category: 'Desserts',
     allergens: ['gluten', 'lactose', 'œufs'],
+    sides: ['crème fraîche', 'glace vanille', 'chantilly'],
     isAvailable: true
   },
   {
@@ -97,6 +102,7 @@ export const menuItems: MenuItem[] = [
     price: 6.50,
     category: 'Desserts',
     allergens: ['lactose', 'œufs'],
+    sides: ['biscuit', 'fruits rouges'],
     isAvailable: true
   },
   {
@@ -106,6 +112,7 @@ export const menuItems: MenuItem[] = [
     price: 8.00,
     category: 'Desserts',
     allergens: ['gluten', 'lactose', 'œufs'],
+    sides: ['sauce caramel', 'amandes effilées', 'fruits frais'],
     isAvailable: true
   },
 
