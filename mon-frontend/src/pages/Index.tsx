@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { restaurantInfo, menuItems, dailySpecials } from '@/data/menuData';
+import { dailySpecials } from '@/data/menuData';
+import { useMenu } from '@/hooks/useMenu';
+import { MenuItem as MenuItemType } from '@/types/restaurant';
 import { useCart } from '@/hooks/useCart';
 import { useOrders } from '@/hooks/useOrders';
 import { MenuItem, Order, User } from '@/types/restaurant';
@@ -13,6 +15,7 @@ import LoginPrompt from '@/components/LoginPrompt';
 import PaymentSelector from '@/components/PaymentSelector';
 import DailySpecials from '@/components/DailySpecials';
 import AIRecommendations from '@/components/AIRecommendations';
+import { useAIRecommendations } from '@/hooks/useAIRecommendations';
 import LoyaltyPointsModal from '@/components/LoyaltyPointsModal';
 import OrderHistory from '@/components/OrderHistory';
 import RatingNotification from '@/components/RatingNotification';
@@ -38,7 +41,7 @@ const Index = () => {
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
-  
+  const { recommendations, loading: loadingRecs, error: recsError } = useAIRecommendations();
   const { currentOrder, orderHistory, addOrder, completeCurrentOrder, setCurrentOrder } = useOrders();
   
   const {
@@ -206,10 +209,25 @@ const Index = () => {
     setOrderToRate(null);
   };
 
-  const groupedMenuItems = restaurantInfo.categories.reduce((acc, category) => {
-    acc[category] = menuItems.filter(item => item.category === category && item.isAvailable);
-    return acc;
-  }, {} as Record<string, MenuItem[]>);
+  // après avoir récupéré le menu depuis useMenu
+  const { menu } = useMenu();
+
+  const categories: MenuItemType['category'][] = [
+    'entree',
+    'plat_principal',
+    'dessert',
+    'boisson',
+    'accompagnement',
+    'autre',
+  ];
+
+  const groupedMenuItems: Record<string, MenuItemType[]> = {};
+  categories.forEach(category => {
+    groupedMenuItems[category] = menu.filter(
+      item => item.category === category && item.isAvailable
+    );
+  });
+
 
   console.log('État actuel de l\'app:', appState);
 
@@ -262,6 +280,11 @@ const Index = () => {
       }}
     />;
   }
+
+  const restaurantInfo = {
+    name: "Easy Restaurant",
+    description: "Passez vos commandes rapidement",
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -385,14 +408,14 @@ const Index = () => {
         {user && (
           <AIRecommendations 
             user={user} 
-            menuItems={menuItems}
+            menuItems={recommendations}
             onAddToCart={handleAddToCart}
           />
         )}
 
-        <Tabs defaultValue={restaurantInfo.categories[0]} className="space-y-6">
+        <Tabs defaultValue={categories[0]} className="space-y-6">
           <TabsList className={`${isMobile ? 'grid w-full grid-cols-2 h-auto' : 'grid w-full grid-cols-4'}`}>
-            {restaurantInfo.categories.map((category) => (
+            {categories.map((category) => (
               <TabsTrigger 
                 key={category} 
                 value={category}
@@ -403,7 +426,7 @@ const Index = () => {
             ))}
           </TabsList>
           
-          {restaurantInfo.categories.map((category) => (
+          {categories.map((category) => (
             <TabsContent key={category} value={category} className="space-y-6">
               <MenuCategory
                 category={category}

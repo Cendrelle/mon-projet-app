@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { User, Gift, X, LogIn } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 
 interface LoginPromptProps {
   onLogin: (user: any) => void;
@@ -15,6 +16,7 @@ interface LoginPromptProps {
 }
 
 const LoginPrompt = ({ onLogin, onSkip, onClose }: LoginPromptProps) => {
+  const { login, register } = useAuth();
   const [email, setEmail] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -23,19 +25,33 @@ const LoginPrompt = ({ onLogin, onSkip, onClose }: LoginPromptProps) => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isRegistering, setIsRegistering] = useState(false);
 
-  const handleSubmit = () => {
-    // Simulation d'un utilisateur connecté ou inscrit
-    const mockUser = {
-      id: 'user-1',
-      name: isRegistering ? `${firstName} ${lastName}` : 'Client Fidèle',
-      email: email || 'client@example.com',
-      phone: phone || '',
-      loyaltyPoints: isRegistering ? 0 : 150,
-      preferences: ['viande', 'dessert'],
-      orderHistory: []
-    };
-    onLogin(mockUser);
+  const handleSubmit = async () => {
+    try {
+      if (isRegistering) {
+       const newUser = await register(
+        firstName,
+        lastName,
+        email,
+        password,
+        confirmPassword, // passwordConfirm
+        phone
+      );
+      onLogin(newUser);
+      } else {
+        // Connexion
+        const user = await login(email, password);  // <- API réelle
+        onLogin(user);  // transmet le profil récupéré au parent
+        if (!email || !password) {
+          alert("Veuillez entrer votre email et votre mot de passe.");
+          return;
+        }
+      }
+    } catch (error: any) {
+      console.error("Erreur d'auth", error);
+      alert(error.message);
+    }
   };
+
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -104,30 +120,30 @@ const LoginPrompt = ({ onLogin, onSkip, onClose }: LoginPromptProps) => {
                 onChange={(e) => setEmail(e.target.value)}
               />
             </div>
+            <div>
+              <Label htmlFor="password">Mot de passe</Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="Mot de passe"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+
             {isRegistering && (
-              <>
-                <div>
-                  <Label htmlFor="password">Mot de passe</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="Mot de passe"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="confirmPassword">Confirmer le mot de passe</Label>
-                  <Input
-                    id="confirmPassword"
-                    type="password"
-                    placeholder="Confirmer le mot de passe"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                  />
-                </div>
-              </>
+              <div>
+                <Label htmlFor="confirmPassword">Confirmer le mot de passe</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  placeholder="Confirmer le mot de passe"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                />
+              </div>
             )}
+
           </div>
 
           <div className="space-y-3">

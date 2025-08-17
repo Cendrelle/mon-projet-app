@@ -9,6 +9,9 @@ interface MenuCategoryProps {
 }
 
 const MenuCategory = ({ category, items, onAddToCart }: MenuCategoryProps) => {
+  const itemsInCategory = items.filter(item => item.category === category && item.isAvailable);
+
+  if (itemsInCategory.length === 0) return null;
   return (
     <div className="mb-8">
       <h2 className="text-2xl font-bold text-gray-900 mb-6 pb-2 border-b border-restaurant-200">

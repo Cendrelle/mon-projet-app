@@ -23,26 +23,6 @@ export const useAuth = () => {
     }
   }, []);
 
-  const fetchProfile = async (token: string) => {
-    try {
-      const res = await fetch('http://localhost:8000/api/profile/', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setUser(data);
-      } else {
-        setUser(null);
-        setAccessToken(null);
-        localStorage.removeItem('access_token');
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const login = async (email: string, password: string) => {
     const res = await fetch('http://localhost:8000/api/login/', {
       method: 'POST',
@@ -58,11 +38,71 @@ export const useAuth = () => {
     setAccessToken(data.access);
 
     // Récupérer le profil après login
-    await fetchProfile(data.access);
+    const profile = await fetchProfile(data.access);
+    return profile; 
+  };
 
-    if (!user) throw new Error('Impossible de récupérer le profil');
+  const register = async (firstName: string,
+    lastName: string,
+    email: string,
+    password: string,
+    passwordConfirm: string,
+    phone?: string
+  ) => {
+    try {
+      const res = await fetch('http://localhost:8000/api/signup/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          firstname: firstName,
+          lastname: lastName,
+          email,
+          password,
+          password_confirm: passwordConfirm, // <- ici
+          phone,
+        }),
+      });
 
-    return user;
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.detail || 'Inscription échouée');
+
+      // Récupérer le token après inscription si le backend le renvoie
+      if (data.access) {
+        localStorage.setItem('access_token', data.access);
+        setAccessToken(data.access);
+        await fetchProfile(data.access); // récupère le profil complet
+      }
+
+      return user;
+    } catch (err) {
+      console.error('Erreur lors de l’inscription:', err);
+      throw err;
+    }
+  };
+
+
+  const fetchProfile = async (token: string) => {
+    try {
+      const res = await fetch('http://localhost:8000/api/profile/', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setUser(data);
+        return data;  // <-- retourne le profil ici
+      } else {
+        setUser(null);
+        setAccessToken(null);
+        localStorage.removeItem('access_token');
+        return null;
+      }
+    } catch (err) {
+      console.error(err);
+      return null;
+    } finally {
+      setLoading(false);
+    }
   };
 
   const logout = async () => {
@@ -88,6 +128,7 @@ export const useAuth = () => {
     user,
     loading,
     accessToken,
+    register,
     login,
     logout,
     authFetch,

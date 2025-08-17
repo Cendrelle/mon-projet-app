@@ -17,7 +17,8 @@ const MenuItemCard = ({ item, onAddToCart }: MenuItemCardProps) => {
   const [showCustomization, setShowCustomization] = useState(false);
   const isMobile = useIsMobile();
 
-  const hasCustomizations = item.cookingOptions || item.sides;
+  // Activation sauf pour boisson
+const hasCustomizations = item.category !== 'boisson';
 
   const handleAddToCart = (customizations?: any) => {
     onAddToCart(item, customizations);
