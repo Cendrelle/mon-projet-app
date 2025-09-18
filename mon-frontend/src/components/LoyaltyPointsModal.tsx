@@ -73,7 +73,7 @@ const LoyaltyPointsModal = ({ user, onClose }: LoyaltyPointsModalProps) => {
           <div className="space-y-2 text-sm text-gray-600">
             <h4 className="font-medium text-gray-900">Comment gagner des points :</h4>
             <ul className="space-y-1">
-              <li>• 1 point = 1€ de commande</li>
+              <li>• 1 point = 1€ de commande soit 656 FCFA</li>
               <li>• Bonus de 20 points à chaque 5ème commande</li>
               <li>• Points doublés les weekends</li>
             </ul>

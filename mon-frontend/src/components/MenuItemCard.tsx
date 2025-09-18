@@ -51,7 +51,7 @@ const hasCustomizations = item.category !== 'boisson';
             
             <div className={`${isMobile ? 'self-start' : 'ml-4'} text-right`}>
               <p className={`font-bold text-restaurant-600 ${isMobile ? 'text-2xl' : 'text-xl'}`}>
-                {item.price.toFixed(2)}€
+                {item.price.toFixed(2)}FCFA
               </p>
             </div>
           </div>

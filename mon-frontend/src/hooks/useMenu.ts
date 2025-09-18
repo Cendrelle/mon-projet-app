@@ -56,7 +56,7 @@ export const useMenu = () => {
     };
 
     fetchMenu();
-  }, [authFetch]);
+  }, []);
 
   return { menu, loading, error };
 };

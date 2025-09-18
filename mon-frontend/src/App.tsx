@@ -24,7 +24,7 @@ const App = () => (
           <Route 
             path="/dashboard" 
             element={
-              <ProtectedRoute role="admin">
+              <ProtectedRoute allowedRoles={['admin']}>
                 <Dashboard />
               </ProtectedRoute>
             } 
@@ -32,7 +32,7 @@ const App = () => (
           <Route 
             path="/kitchen" 
             element={
-              <ProtectedRoute role="kitchen">
+              <ProtectedRoute allowedRoles={['kitchen', 'admin']}>
                 <KitchenInterface />
               </ProtectedRoute>
             } 

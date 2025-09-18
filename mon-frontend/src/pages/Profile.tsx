@@ -10,28 +10,26 @@ import { User, Settings, Mail, Phone, MapPin, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const Profile = () => {
-  const { user, signOut } = useAuth();
+  const { user, logout, authFetch, setUser } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [profile, setProfile] = useState({
-    first_name: '',
-    last_name: '',
+    firstname: '',
+    lastname: '',
     phone: '',
-    address: '',
     email: user?.email || ''
   });
 
   useEffect(() => {
     if (user) {
-      // Charger les données du profil depuis user_metadata ou la base de données
+      console.log(user)
       setProfile({
-        first_name: user.user_metadata?.first_name || '',
-        last_name: user.user_metadata?.last_name || '',
-        phone: user.user_metadata?.phone || '',
-        address: user.user_metadata?.address || '',
+        firstname: user.firstname || '',
+        lastname: user.lastname || '',
+        phone: user.phone || '',
         email: user.email || ''
       });
     }
@@ -39,50 +37,36 @@ const Profile = () => {
 
   const handleUpdateProfile = async () => {
     if (!user) return;
-    
+
     setLoading(true);
     try {
-      // Récupérer les utilisateurs du localStorage
-      const users = JSON.parse(localStorage.getItem('restaurant_users') || '[]');
-      const userIndex = users.findIndex((u: any) => u.id === user.id);
-      
-      if (userIndex !== -1) {
-        // Mettre à jour les données utilisateur
-        users[userIndex] = {
-          ...users[userIndex],
-          user_metadata: {
-            ...users[userIndex].user_metadata,
-            first_name: profile.first_name,
-            last_name: profile.last_name,
-            phone: profile.phone,
-            address: profile.address
-          }
-        };
-        
-        // Sauvegarder dans localStorage
-        localStorage.setItem('restaurant_users', JSON.stringify(users));
-        
-        // Mettre à jour la session courante
-        const updatedUser = {
-          ...user,
-          user_metadata: {
-            ...user.user_metadata,
-            first_name: profile.first_name,
-            last_name: profile.last_name,
-            phone: profile.phone,
-            address: profile.address
-          }
-        };
-        localStorage.setItem('restaurant_current_user', JSON.stringify(updatedUser));
-        
-        toast({
-          title: "Profil mis à jour",
-          description: "Vos informations ont été sauvegardées avec succès.",
-        });
-        setIsEditing(false);
-      } else {
-        throw new Error('Utilisateur non trouvé');
+      // Appel API pour mettre à jour le profil
+      const response = await authFetch(" http://localhost:8000/api/profile/update/", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          firstname: profile.firstname,
+          lastname: profile.lastname,
+          phone: profile.phone,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Échec de la mise à jour");
       }
+
+      const updatedUser = await response.json();
+
+      // Mettre à jour la session courante avec la réponse du backend
+      setUser(updatedUser);
+
+      toast({
+        title: "Profil mis à jour",
+        description: "Vos informations ont été sauvegardées avec succès.",
+      });
+      setIsEditing(false);
     } catch (error: any) {
       toast({
         title: "Erreur",
@@ -94,9 +78,10 @@ const Profile = () => {
     }
   };
 
+
   const handleSignOut = async () => {
     try {
-      await signOut();
+      await logout();
       navigate('/');
       toast({
         title: "Déconnexion réussie",
@@ -168,7 +153,7 @@ const Profile = () => {
                   <Label htmlFor="first_name">Prénom</Label>
                   <Input
                     id="first_name"
-                    value={profile.first_name}
+                    value={profile.firstname}
                     onChange={(e) => setProfile(prev => ({ ...prev, first_name: e.target.value }))}
                     disabled={!isEditing}
                     placeholder="Votre prénom"
@@ -178,7 +163,7 @@ const Profile = () => {
                   <Label htmlFor="last_name">Nom</Label>
                   <Input
                     id="last_name"
-                    value={profile.last_name}
+                    value={profile.lastname}
                     onChange={(e) => setProfile(prev => ({ ...prev, last_name: e.target.value }))}
                     disabled={!isEditing}
                     placeholder="Votre nom"
@@ -214,20 +199,6 @@ const Profile = () => {
                   onChange={(e) => setProfile(prev => ({ ...prev, phone: e.target.value }))}
                   disabled={!isEditing}
                   placeholder="Votre numéro de téléphone"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="address" className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4" />
-                  Adresse
-                </Label>
-                <Input
-                  id="address"
-                  value={profile.address}
-                  onChange={(e) => setProfile(prev => ({ ...prev, address: e.target.value }))}
-                  disabled={!isEditing}
-                  placeholder="Votre adresse"
                 />
               </div>
 
@@ -281,7 +252,7 @@ const Profile = () => {
                 <div>
                   <p className="font-medium">Date d'inscription</p>
                   <p className="text-sm text-muted-foreground">
-                    {user.created_at ? new Date(user.created_at).toLocaleDateString('fr-FR') : 'Non disponible'}
+                    {user.date_joined ? new Date(user.date_joined).toLocaleDateString('fr-FR') : 'Non disponible'}
                   </p>
                 </div>
               </div>
@@ -290,7 +261,7 @@ const Profile = () => {
                 <div>
                   <p className="font-medium">Points de fidélité</p>
                   <p className="text-sm text-muted-foreground">
-                    {user.user_metadata?.loyalty_points || 0} points
+                    {user.loyaltyPoints || 0} points
                   </p>
                 </div>
               </div>

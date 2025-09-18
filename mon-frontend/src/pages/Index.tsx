@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { dailySpecials } from '@/data/menuData';
+import { useAuth } from '@/hooks/useAuth'
 import { useMenu } from '@/hooks/useMenu';
 import { MenuItem as MenuItemType } from '@/types/restaurant';
 import { useCart } from '@/hooks/useCart';
-import { useOrders } from '@/hooks/useOrders';
 import { MenuItem, Order, User } from '@/types/restaurant';
 import QRCodeScanner from '@/components/QRCodeScanner';
 import OrderTypeSelector from '@/components/OrderTypeSelector';
@@ -25,6 +24,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { QrCode, MapPin, User as UserIcon, Gift, LogOut, History, Settings } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
+import { useOrders } from "@/hooks/useOrders";
 
 type AppState = 'scanner' | 'login' | 'menu' | 'orderType' | 'payment' | 'tracking' | 'history';
 
@@ -37,13 +37,77 @@ const Index = () => {
   const [showLoyaltyModal, setShowLoyaltyModal] = useState(false);
   const [orderNotes, setOrderNotes] = useState<string>('');
   const [showRatingNotification, setShowRatingNotification] = useState(false);
+  const [showOrderHistory, setShowOrderHistory] = useState(false);
+  const [showOrderTracking, setShowOrderTracking] = useState(false);
   const [orderToRate, setOrderToRate] = useState<Order | null>(null);
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const { recommendations, loading: loadingRecs, error: recsError } = useAIRecommendations();
-  const { currentOrder, orderHistory, addOrder, completeCurrentOrder, setCurrentOrder } = useOrders();
+  const { currentOrder, orderHistory, addOrder, completeCurrentOrder, updateCurrentOrderStatus, setCurrentOrder } = useOrders();
+  const [dailySpecials, setDailySpecials] = useState<MenuItem[]>([])
+  const { authFetch } = useAuth()
+  const [loyaltyPoints, setLoyaltyPoints] = useState<{ earned_points: number; total_points: number } | null>(null);
   
+  const handleCloseModal = () => setShowLoyaltyModal(false);
+  useEffect(() => {
+    const fetchLoyaltyPoints = async () => {
+      if (!user) return;
+
+      try {
+        const res = await authFetch("http://localhost:8000/api/loyalty/");
+        if (!res.ok) throw new Error("Erreur lors de la récupération des points");
+
+        const data = await res.json();
+        console.log("Points de fidélité :", data);
+
+        setLoyaltyPoints(data.total_points); 
+      } catch (err) {
+        console.error("Erreur fetch loyauté:", err);
+      }
+    };
+    fetchLoyaltyPoints();
+  }, [user]);
+
+  useEffect(() => {
+    const fetchDailySpecials = async () => {
+      try {
+        const response = await authFetch("http://localhost:8000/api/daily-menu/")
+        if (response.ok) {
+          const data = await response.json()
+
+          if (Array.isArray(data) && data.length > 0) {
+            // On prend le premier menu du jour (ou tu peux boucler si tu veux plusieurs dates)
+            const todayMenu = data[0]
+
+            if (todayMenu.plats && Array.isArray(todayMenu.plats)) {
+              const mapped: MenuItem[] = todayMenu.plats.map((plat: any) => ({
+                id: plat.id.toString(),
+                name: plat.name,
+                description: plat.description,
+                price: parseFloat(plat.prix),
+                category: plat.category,
+                isAvailable: plat.isAvailable,
+                isDailySpecial: true
+              }))
+              setDailySpecials(mapped)
+            } else {
+              console.warn("Menu trouvé mais aucun plat :", todayMenu)
+              setDailySpecials([])
+            }
+          } else {
+            console.warn("Aucun menu du jour disponible :", data)
+            setDailySpecials([])
+          }
+        }
+      } catch (error) {
+        console.error('Erreur lors du fetch du menu du jour', error)
+      }
+    }
+
+    fetchDailySpecials()
+  }, [])
+
   const {
     items,
     addItem,
@@ -68,7 +132,7 @@ const Index = () => {
   };
 
   const handleLogin = (userData: User) => {
-    console.log('handleLogin appelé:', userData);
+    //console.log('handleLogin appelé:', userData);
     setUser(userData);
     setShowLoginPrompt(false);
     setAppState('menu');
@@ -118,50 +182,94 @@ const Index = () => {
     });
   };
 
-  const handlePaymentSelect = (paymentMethod: 'cash' | 'mobile') => {
-    const order: Order = {
-      id: `order-${Date.now()}`,
-      tableNumber,
-      items: items.map(item => ({
-        ...item,
-        customizations: {
-          ...item.customizations,
-          generalNotes: orderNotes
-        }
-      })),
-      status: 'confirmed',
-      total: getTotal(),
-      timestamp: new Date(),
-      orderType,
-      paymentMethod,
-      customerInfo: user ? {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        loyaltyPoints: user.loyaltyPoints
-      } : undefined
-    };
+  
+  const handleBack = () => {
+    setShowOrderHistory(false);
+  };
+
+  const handleTrackOrder = (order) => {
+    setCurrentOrder(order);
+    setShowOrderTracking(true); 
     
-    addOrder(order);
-    clearCart();
-    setOrderNotes('');
-    setAppState('tracking');
-    
-    // Simulation de points de fidélité
-    if (user) {
-      const pointsEarned = Math.floor(getTotal());
-      setUser({ ...user, loyaltyPoints: user.loyaltyPoints + pointsEarned });
-      toast({
-        title: "Commande confirmée !",
-        description: `Votre commande a été transmise. +${pointsEarned} points de fidélité gagnés !`,
+  };
+
+  const handlePaymentSelect = async (paymentMethod: 'cash' | 'mobile') => {
+    try {
+      const tableNumInt = parseInt(tableNumber.replace(/\D/g, ''), 10);
+
+      const res = await fetch('http://localhost:8000/api/valider-commande/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type_service: orderType === 'dine-in' ? 'sur_place' : 'emporter',
+          table_number: tableNumInt,
+          plats: items.map(item => ({
+            plat: item.menuItem.id,
+            quantite: item.quantity,
+            prix: item.menuItem.price
+          }))
+        })
       });
-    } else {
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Erreur lors de la validation de la commande");
+      }
+
+      const data = await res.json(); 
+      const order: Order = {
+        id: `order-${Date.now()}`,
+        tableNumber,
+        items: items.map(item => ({
+          ...item,
+          customizations: {
+            ...item.customizations,
+            generalNotes: orderNotes
+          }
+        })),
+        status: 'confirmed',
+        total: data.total || getTotal(),
+        timestamp: new Date(),
+        orderType,
+        paymentMethod,
+        customerInfo: user ? {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          loyaltyPoints: user.loyaltyPoints
+        } : undefined
+      };
+
+      addOrder(order);
+      clearCart();
+      setOrderNotes('');
+      setAppState('tracking');
+
+      // Simulation de points de fidélité
+      if (user) {
+        const pointsEarned = Math.floor(getTotal());
+        setUser({ ...user, loyaltyPoints: user.loyaltyPoints + pointsEarned });
+        toast({
+          title: "Commande confirmée !",
+          description: `Votre commande a été transmise. +${pointsEarned} points de fidélité gagnés !`,
+        });
+      } else {
+        toast({
+          title: "Commande confirmée !",
+          description: "Votre commande a été transmise à la cuisine.",
+        });
+      }
+
+    } catch (err: any) {
+      console.error(err);
       toast({
-        title: "Commande confirmée !",
-        description: "Votre commande a été transmise à la cuisine.",
+        title: "Erreur",
+        description: err.message,
+        // status: "error",
       });
     }
   };
+
 
   const handleBackToMenu = () => {
     setAppState('menu');
@@ -269,16 +377,16 @@ const Index = () => {
   }
 
   if (appState === 'history') {
-    return <OrderHistory 
-      user={user} 
-      onBack={handleBackFromHistory} 
-      currentOrder={currentOrder}
-      orderHistory={orderHistory}
-      onTrackOrder={(order) => {
-        setCurrentOrder(order);
-        setAppState('tracking');
-      }}
-    />;
+    return <OrderHistory
+    user={user}
+    onBack={handleBackFromHistory}
+    currentOrder={currentOrder}
+    orderHistory={orderHistory}  
+    onTrackOrder={(order) => {
+      setCurrentOrder(order);
+      setAppState('tracking');
+    }}
+  />
   }
 
   const restaurantInfo = {
@@ -286,13 +394,15 @@ const Index = () => {
     description: "Passez vos commandes rapidement",
   };
 
+
   return (
     <div className="min-h-screen bg-gray-50">
       {showLoyaltyModal && user && (
         <LoyaltyPointsModal
-          user={user}
-          onClose={() => setShowLoyaltyModal(false)}
+          user={{ ...user, loyaltyPoints }} 
+          onClose={handleCloseModal}
         />
+
       )}
 
       {/* Header */}
@@ -446,7 +556,7 @@ const Index = () => {
           onDismiss={handleDismissRating}
         />
       )}
-      
+
       {/* Cart Sidebar */}
       <CartSidebar
         items={items}
@@ -457,6 +567,7 @@ const Index = () => {
         itemCount={getItemCount()}
         orderNotes={orderNotes}
         onUpdateNotes={setOrderNotes}
+        tableNumber={tableNumber}
       />
     </div>
   );

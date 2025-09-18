@@ -6,11 +6,22 @@ import { AlertCircle } from 'lucide-react';
 
 interface ProtectedRouteProps {
   children: ReactNode;
-  role: 'admin' | 'kitchen';
+  allowedRoles: ('admin' | 'kitchen')[];
 }
 
-const ProtectedRoute = ({ children, role }: ProtectedRouteProps) => {
-  const { user, loading, getUserRole } = useAuth();
+const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
+  const { user, loading } = useAuth();
+
+  const mapRoleToFrontend = (role: "ADMIN" | "CUISINIER" | "CLIENT"): "admin" | "kitchen" => {
+    switch (role) {
+      case "ADMIN":
+        return "admin";
+      case "CUISINIER":
+        return "kitchen";
+      default:
+        return "kitchen"; // ou "client"
+    }
+  };
 
   if (loading) {
     return (
@@ -21,13 +32,13 @@ const ProtectedRoute = ({ children, role }: ProtectedRouteProps) => {
   }
 
   if (!user) {
-    return <AdminLogin role={role} />;
+    return <AdminLogin role={allowedRoles[0]} />;
   }
 
-  const userRole = getUserRole();
-  
-  // Vérifier si l'utilisateur a le bon rôle
-  if (userRole !== role) {
+  const userRole = mapRoleToFrontend(user.role);
+
+  // Vérifie si le rôle de l'utilisateur est dans la liste des rôles autorisés
+  if (!allowedRoles.includes(userRole)) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
         <Alert variant="destructive" className="max-w-md">
@@ -35,7 +46,7 @@ const ProtectedRoute = ({ children, role }: ProtectedRouteProps) => {
           <AlertDescription>
             Accès refusé. Vous n'avez pas les permissions nécessaires pour accéder à cette interface.
             <br />
-            <span className="text-sm">Rôle requis: {role}, votre rôle: {userRole}</span>
+            <span className="text-sm">Rôle requis: {allowedRoles.join(", ")}, votre rôle: {userRole}</span>
           </AlertDescription>
         </Alert>
       </div>
@@ -45,4 +56,6 @@ const ProtectedRoute = ({ children, role }: ProtectedRouteProps) => {
   return <>{children}</>;
 };
 
+
 export default ProtectedRoute;
+

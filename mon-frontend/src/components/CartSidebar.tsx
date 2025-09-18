@@ -7,6 +7,7 @@ import { ShoppingCart, Plus, Minus, Trash2, MessageSquare } from 'lucide-react';
 import { CartItem } from '@/types/restaurant';
 import { useIsMobile } from '@/hooks/use-mobile';
 import NotesModal from './NotesModal';
+import { useAuth } from '@/hooks/useAuth';
 
 interface CartSidebarProps {
   items: CartItem[];
@@ -17,6 +18,8 @@ interface CartSidebarProps {
   itemCount: number;
   orderNotes?: string;
   onUpdateNotes?: (notes: string) => void;
+  tableNumber: string;
+  // price: number;
 }
 
 const CartSidebar = ({ 
@@ -27,11 +30,14 @@ const CartSidebar = ({
   total, 
   itemCount,
   orderNotes = '',
-  onUpdateNotes
+  onUpdateNotes,
+  tableNumber
 }: CartSidebarProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [showNotesModal, setShowNotesModal] = useState(false);
   const isMobile = useIsMobile();
+  const { authFetch } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
@@ -115,7 +121,7 @@ const CartSidebar = ({
                        </Button>
                      </div>
                      <span className={`font-semibold ${isMobile ? 'text-lg' : ''}`}>
-                       {(item.menuItem.price * item.quantity).toFixed(2)}€
+                       {(item.menuItem.price * item.quantity).toFixed(2)}FCFA
                      </span>
                    </div>
                  </div>
@@ -133,7 +139,7 @@ const CartSidebar = ({
                 
                 <div className="flex justify-between items-center text-lg font-bold">
                   <span>Total</span>
-                  <span>{total.toFixed(2)}€</span>
+                  <span>{total.toFixed(2)}FCFA</span>
                 </div>
                 
                 <div className="space-y-2">
@@ -148,15 +154,51 @@ const CartSidebar = ({
                     </Button>
                   )}
                   
-                  <Button 
-                    onClick={() => {
-                      onCheckout();
-                      setIsOpen(false);
+                  {/* <Button 
+                    onClick={async () => {
+                      if (items.length === 0) return;
+                      console.log({ tableNumber, items });
+
+                      setIsSubmitting(true);
+                      try {
+                        const tableNumInt = parseInt(tableNumber.replace(/\D/g, ''), 10);
+                        const res = await authFetch('http://localhost:8000/api/valider-commande/', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ 
+                            type_service: 'sur_place', 
+                            table_number: tableNumInt,
+                            plats: items.map((item: CartItem) => ({
+                              plat: item.menuItem.id,       
+                              quantite: item.quantity,
+                              prix: item.menuItem.price   
+                            }))
+                          }), 
+                        });
+
+                        const data = await res.json();
+
+                        if (!res.ok) {
+                          throw new Error(data.error || "Erreur lors de la validation de la commande");
+                        }
+
+                        // alert(`Commande validée ! Total: ${data.total} FCFA`);
+                        // onClearCart(); // Vider le panier côté frontend
+                        // setIsOpen(false);
+
+                      } catch (err: any) {
+                        alert(err.message);
+                      } finally {
+                        setIsSubmitting(false);
+                      }
                     }}
                     className={`w-full bg-restaurant-500 hover:bg-restaurant-600 text-white ${isMobile ? 'min-h-14 text-lg' : ''}`}
                     size="lg"
-                    disabled={items.length === 0}
+                    disabled={items.length === 0 || isSubmitting}
                   >
+                    {isSubmitting ? 'Validation...' : 'Commander'}
+                  </Button> */}
+                  <Button onClick={onCheckout}>
                     Commander
                   </Button>
                 </div>

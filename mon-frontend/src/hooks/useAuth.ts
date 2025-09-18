@@ -4,8 +4,12 @@ export interface User {
   id: number;
   email: string;
   name: string;
+  firstname: string;
+  lastname: string;
+  phone: string;
   role: 'ADMIN' | 'CUISINIER' | 'CLIENT';
   loyaltyPoints?: number;
+  date_joined: string;
 }
 
 export const useAuth = () => {
@@ -35,10 +39,12 @@ export const useAuth = () => {
     if (!res.ok) throw new Error(data.detail || 'Login failed');
 
     localStorage.setItem('access_token', data.access);
+    localStorage.setItem("refresh_token", data.refresh);
     setAccessToken(data.access);
 
     // Récupérer le profil après login
     const profile = await fetchProfile(data.access);
+
     return profile; 
   };
 
@@ -106,14 +112,47 @@ export const useAuth = () => {
   };
 
   const logout = async () => {
-    localStorage.removeItem('access_token');
-    setUser(null);
-    setAccessToken(null);
+    const refresh = localStorage.getItem("refresh_token");
+
+    try {
+      if (refresh) {
+        // Appel backend pour blacklist le refresh token
+        await fetch("http://127.0.0.1:8000/api/logout/", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`, // obligatoire car IsAuthenticated
+          },
+          body: JSON.stringify({ refresh }),
+        });
+      }
+    } catch (error) {
+      console.error("Erreur logout:", error);
+    } finally {
+      // Nettoyage côté client
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("refresh_token");
+      setAccessToken(null);
+      setUser(null);
+    }
   };
 
+
+
   const authFetch = async (url: string, options: RequestInit = {}) => {
-    if (!accessToken) throw new Error('No access token');
-    const res = await fetch(url, {
+    // Si pas de token → on fait un simple fetch normal
+    if (!accessToken) {
+      return fetch(url, {
+        ...options,
+        headers: {
+          ...(options.headers || {}),
+          'Content-Type': 'application/json',
+        },
+      });
+    }
+
+    // Sinon on met le token
+    return fetch(url, {
       ...options,
       headers: {
         ...(options.headers || {}),
@@ -121,8 +160,10 @@ export const useAuth = () => {
         'Content-Type': 'application/json',
       },
     });
-    return res;
   };
+
+  const getUserRole = () => user?.role || null;
+
 
   return {
     user,
@@ -132,5 +173,7 @@ export const useAuth = () => {
     login,
     logout,
     authFetch,
+    setUser,
+    getUserRole
   };
 };

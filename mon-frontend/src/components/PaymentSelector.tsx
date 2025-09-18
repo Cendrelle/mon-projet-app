@@ -17,7 +17,7 @@ const PaymentSelector = ({ onSelectPayment, total }: PaymentSelectorProps) => {
       <CardContent className="space-y-4">
         <div className="text-center mb-4">
           <span className="text-2xl font-bold text-restaurant-600">
-            Total: {total.toFixed(2)}€
+            Total: {total.toFixed(2)}FCFA
           </span>
         </div>
         

@@ -73,6 +73,8 @@ const OrderHistory = ({ user, onBack, currentOrder, orderHistory = [], onTrackOr
         return 'Prêt';
       case 'preparing':
         return 'En préparation';
+      case 'confirmed':
+        return 'Confirmée';
       default:
         return 'En attente';
     }
@@ -131,7 +133,7 @@ const OrderHistory = ({ user, onBack, currentOrder, orderHistory = [], onTrackOr
                   <div className="flex-1">
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-lg">
-                        Commande #{order.id.slice(-6)}
+                        Commande n° {order.id.replace('order-', '')}
                       </CardTitle>
                       {order === currentOrder && (
                         <Badge className="bg-restaurant-500 text-white">En cours</Badge>
@@ -160,7 +162,7 @@ const OrderHistory = ({ user, onBack, currentOrder, orderHistory = [], onTrackOr
                     )}
                   </div>
                   <div className="text-right">
-                    <p className="font-bold text-lg">{order.total.toFixed(2)}€</p>
+                    <p className="font-bold text-lg">{order.total.toFixed(2)}FCFA</p>
                     <Badge 
                       variant="outline" 
                       className="flex items-center space-x-1 w-fit"

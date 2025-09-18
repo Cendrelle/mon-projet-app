@@ -22,6 +22,7 @@ export interface CartItem {
     sides?: string[];
     notes?: string;
   };
+  price: number;
 }
 
 export interface Order {
@@ -58,9 +59,13 @@ export interface User {
   id: string;
   name: string;
   email: string;
+  firstname: string;
+  lastname: string;
+  phone: string;
   loyaltyPoints: number;
   orderHistory: Order[];
   preferences: string[];
+  date_joined: string;
 }
 
 export interface DailyMenu {
@@ -68,4 +73,29 @@ export interface DailyMenu {
   date: Date;
   specialItems: MenuItem[];
   description: string;
+}
+
+export interface BackendPlat {
+  id: number;           // id du plat dans la table PlatCommandes
+  plat: number;         // id du menuItem
+  nom_plat?: string;    // nom du plat (si disponible côté backend)
+  quantite: number;
+  prix: number;
+  description: string;
+  categorie: string;
+  // ajouter d'autres champs si besoin
+}
+
+export interface BackendCommande {
+  commande: number;            // correspond à cmd.id
+  date: string;                // cmd.date_commande
+  statut: string;              // cmd.statut
+  table_number?: string;       // numéro de table
+  type_service: 'sur_place' | 'emporter';
+  mode?: 'en_ligne' | 'espèces';
+  plats: BackendPlat[];
+  rating?: {
+    score: number;
+    comment?: string;
+  };
 }

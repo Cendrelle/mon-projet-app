@@ -42,7 +42,7 @@ const DailySpecials = ({ specialItems, onAddToCart }: DailySpecialsProps) => {
                   </Badge>
                 </div>
                 <p className="text-sm text-gray-600 mb-2">{item.description}</p>
-                <span className="font-bold text-amber-600 text-lg">{item.price.toFixed(2)}€</span>
+                <span className="font-bold text-amber-600 text-lg">{item.price.toFixed(2)}FCFA</span>
               </div>
               <Button
                 onClick={() => onAddToCart(item)}

@@ -215,7 +215,7 @@ const OrderTracking = ({ order, onBackToMenu }: OrderTrackingProps) => {
                     )}
                   </div>
                   <span className="font-medium">
-                    {(item.menuItem.price * item.quantity).toFixed(2)}€
+                    {(item.menuItem.price * item.quantity).toFixed(2)}FCFA
                   </span>
                 </div>
               ))}
@@ -233,7 +233,7 @@ const OrderTracking = ({ order, onBackToMenu }: OrderTrackingProps) => {
               
               <div className="border-t pt-3 flex justify-between items-center font-bold text-lg">
                 <span>Total</span>
-                <span>{order.total.toFixed(2)}€</span>
+                <span>{order.total.toFixed(2)}FCFA</span>
               </div>
             </div>
           </CardContent>

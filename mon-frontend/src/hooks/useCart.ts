@@ -21,6 +21,7 @@ export const useCart = () => {
         id: `${menuItem.id}-${Date.now()}`,
         menuItem,
         quantity: 1,
+        price: menuItem.price,
         customizations: customizations || {}
       };
       setItems([...items, newItem]);

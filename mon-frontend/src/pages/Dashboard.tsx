@@ -28,6 +28,7 @@ import {
   Trash2,
   Plus,
   Eye,
+  Flame,
   Filter
 } from 'lucide-react';
 
@@ -40,90 +41,427 @@ interface DashboardStats {
   revenue: number;
 }
 
-interface Order {
-  id: string;
-  tableNumber: string;
-  items: string[];
-  status: 'pending' | 'preparing' | 'ready' | 'served';
-  total: number;
-  orderTime: Date;
-  estimatedTime: number;
+interface PlatMenu {
+  id: number;
+  nom_plat: string;
+  prix: number;
+  categorie: string;
+  disponibilite: boolean;
+  description: string;
+  image?: File | null;
 }
 
+interface Order {
+  id: number;
+  client: null | any;
+  table: number; // juste l'id de la table
+  date_commande: string;
+  statut: "confirmee" | "en_cours" | "pretee" | "servie";
+  total: string;
+  type_service: string;
+  plats: Array<{
+    id: number;
+    plat: {
+      id: number;
+      nom_plat: string;
+      prix: string;
+      categorie: string;
+      disponibilite: boolean;
+      description: string;
+      image: string;
+      ingredients: string;
+    };
+    quantite: number;
+    prix: string;
+  }>;
+}
+
+interface Client {
+  id: number;
+  firstname: string;
+  lastname: string;
+  email: string;
+  phone: string;
+  loyalty_points: number;
+  last_login?: string; // ou autre champ pour dernière visite
+}
+
+interface AnalyticsStats {
+  total_clients: number;       // total des clients
+  total_commandes: number;     // total des commandes
+  ventes_totales: number;      // total des ventes
+  todaySales: number;          // ventes du jour
+  activeOrders: number;        // commandes en cours
+  completedOrders: number;     // commandes servies
+  avgWaitTime: number;         // temps moyen de préparation (en minutes)
+  plats_populaires: {
+    nom_plat: string;
+    nb_ventes: number;
+  }[];
+}
+
+
+
 const Dashboard = () => {
-  const [stats, setStats] = useState<DashboardStats>({
-    todaySales: 1847,
-    activeOrders: 12,
-    avgWaitTime: 18,
-    customerCount: 156,
-    completedOrders: 89,
-    revenue: 4230
+
+  // States pour le modal
+  const [showDishModal, setShowDishModal] = useState(false);
+
+  // State pour le formulaire d'ajout
+  const [newDish, setNewDish] = useState({
+    nom_plat: "",
+    prix: "",
+    categorie: "",
+    description: "",
+    ingredients: "",
+    disponibilite: true,
+    image: null
   });
 
-  const [orders, setOrders] = useState<Order[]>([
-    {
-      id: 'ORD-001',
-      tableNumber: 'Table 5',
-      items: ['Burger Royal', 'Frites', 'Coca'],
-      status: 'preparing',
-      total: 24.50,
-      orderTime: new Date(Date.now() - 15 * 60000),
-      estimatedTime: 5
-    },
-    {
-      id: 'ORD-002',
-      tableNumber: 'Table 12',
-      items: ['Pizza Margherita', 'Salade César'],
-      status: 'pending',
-      total: 31.00,
-      orderTime: new Date(Date.now() - 8 * 60000),
-      estimatedTime: 12
-    },
-    {
-      id: 'ORD-003',
-      tableNumber: 'Table 3',
-      items: ['Pâtes Carbonara', 'Tiramisu'],
-      status: 'ready',
-      total: 19.50,
-      orderTime: new Date(Date.now() - 25 * 60000),
-      estimatedTime: 0
-    },
-    {
-      id: 'ORD-004',
-      tableNumber: 'Table 8',
-      items: ['Steak Frites', 'Salade verte'],
-      status: 'preparing',
-      total: 28.00,
-      orderTime: new Date(Date.now() - 12 * 60000),
-      estimatedTime: 8
-    }
-  ]);
+  const [editingDish, setEditingDish] = useState<any>(null); // pour la modification
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [menu, setMenu] = useState<PlatMenu[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [loadingClients, setLoadingClients] = useState(true);
+  const [stats, setStats] = useState<AnalyticsStats | null>(null);
+  const [loadingStats, setLoadingStats] = useState(true);
 
-  const getStatusColor = (status: Order['status']) => {
-    switch (status) {
-      case 'pending': return 'bg-orange-100 text-orange-800';
-      case 'preparing': return 'bg-blue-100 text-blue-800';
-      case 'ready': return 'bg-green-100 text-green-800';
-      case 'served': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800';
+  // --- pour ouvrir le modal et pré-remplir ---
+  const startEditDish = (dish: any) => {
+    setEditingDish(dish);      // stocke le plat en cours d’édition
+    setNewDish(dish);          // pré-remplit le formulaire avec ses valeurs
+    setShowAddModal(true);     // ouvre le modal
+  };
+
+  const handleOpenEdit = (dish: any) => {
+    setEditingDish(dish); // tu stockes le plat en cours d'édition
+  };
+
+
+  // State pour le plat en cours de modification (null si ajout)
+  const [currentDish, setCurrentDish] = useState<null | {
+    id?: number;
+    nom_plat: string;
+    prix: string;
+    categorie: string;
+    description: string;
+    ingredients: string;
+    disponibilite: boolean;
+    image?: File | null;
+  }>(null);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const token = localStorage.getItem("access_token");
+        if (!token) throw new Error("Pas de token trouvé, reconnectez-vous");
+
+        const response = await fetch("http://localhost:8000/api/admin/stats/", {
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) throw new Error("Erreur API statistiques");
+
+        const data = await response.json();
+        setStats(data);
+      } catch (error) {
+        console.error("Erreur lors du fetch des statistiques:", error);
+      } finally {
+        setLoadingStats(false);
+      }
+    };
+
+    fetchStats();
+  }, []);
+
+  useEffect(() => {
+    const fetchClients = async () => {
+      try {
+        const token = localStorage.getItem("access_token");
+        if (!token) throw new Error("Pas de token trouvé");
+
+        const response = await fetch("http://localhost:8000/api/admin/clients/", {
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) throw new Error("Erreur API");
+
+        const data = await response.json();
+        setClients(data);
+        setLoadingClients(false);
+      } catch (error) {
+        console.error("Erreur fetch clients:", error);
+        setLoadingClients(false);
+      }
+    };
+
+    fetchClients();
+  }, []);
+
+  const handleViewClient = async (id: number) => {
+  try {
+    const token = localStorage.getItem("access_token");
+    if (!token) throw new Error("Pas de token trouvé");
+    const res = await fetch(`http://localhost:8000/api/admin/clients/${id}/`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) throw new Error("Erreur lors de la récupération du client");
+    const data = await res.json();
+    console.log("Détails client:", data);
+    // Ouvrir un modal si tu veux afficher les infos
+  } catch (err) {
+    console.error(err);
+  }
+};
+
+const handleEditClient = (client: Client) => {
+  console.log("Modifier client:", client);
+  // Pré-remplir un formulaire dans un modal
+};
+
+const handleDeleteClient = async (id: number) => {
+  if (!confirm("Supprimer ce client ?")) return;
+
+  const token = localStorage.getItem("access_token");
+  try {
+    const res = await fetch(`http://localhost:8000/api/admin/clients/${id}/`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) throw new Error("Erreur suppression client");
+    setClients(clients.filter((c) => c.id !== id));
+  } catch (err) {
+    console.error(err);
+  }
+};
+
+
+  const [orders, setOrders] = useState<Order[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [currentTime, setCurrentTime] = useState(new Date());
+  
+    // Actualisation de l'heure toutes les 30s
+    useEffect(() => {
+      const timer = setInterval(() => setCurrentTime(new Date()), 30000);
+      return () => clearInterval(timer);
+    }, []);
+  
+    useEffect(() => {
+      const fetchOrders = async () => {
+        try {
+          const token = localStorage.getItem("access_token");
+          if (!token) throw new Error("Pas de token trouvé, reconnectez-vous");
+  
+          const response = await fetch("http://localhost:8000/api/admin/commandes/", {
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${token}`,
+            },
+          });
+  
+          if (!response.ok) throw new Error("Erreur API");
+  
+          const data = await response.json();
+          setOrders(data);       // ← stocke les commandes
+          setLoading(false);     // ← fin du chargement
+        } catch (error) {
+          console.error("Erreur lors du fetch des commandes:", error);
+          setLoading(false);     // ← fin du chargement même si erreur
+        }
+      };
+  
+      fetchOrders();
+    }, []);
+  
+  
+    const getStatusColor = (status: Order["statut"]) => {
+      switch (status) {
+        case "confirmee":
+          return "bg-red-100 text-red-800 border-red-200";
+        case "en_cours":
+          return "bg-blue-100 text-blue-800 border-blue-200";
+        case "pretee":
+          return "bg-green-100 text-green-800 border-green-200";
+        case "servie":
+          return "bg-gray-100 text-gray-800 border-gray-200";
+        default:
+          return "bg-gray-100 text-gray-800 border-gray-200";
+      }
+    };
+  
+    const getStatusIcon = (status: Order["statut"]) => {
+      switch (status) {
+        case "confirmee":
+          return <AlertCircle className="w-4 h-4" />;
+        case "en_cours":
+          return <Flame className="w-4 h-4" />;
+        case "pretee":
+          return <CheckCircle className="w-4 h-4" />;
+        case "servie":
+          return <Timer className="w-4 h-4" />;
+        default:
+          return <Timer className="w-4 h-4" />;
+      }
+    };
+  
+    const updateOrderStatus = (orderId: number, newStatus: Order["statut"]) => {
+      setOrders((prev) =>
+        prev.map((order) =>
+          order.id === orderId ? { ...order, statut: newStatus } : order
+        )
+      );
+    };
+  
+    const getTimeElapsed = (date_commande: string) => {
+      const orderTime = new Date(date_commande);
+      return Math.floor((currentTime.getTime() - orderTime.getTime()) / 60000);
+    };
+  
+    const pendingOrders = orders?.filter((order) => order.statut === "confirmee") || [];
+    const preparingOrders = orders?.filter((order) => order.statut === "en_cours") || [];
+    const readyOrders = orders?.filter((order) => order.statut === "pretee") || [];
+  
+  
+    if (loading) {
+      return <div className="p-6">Chargement des commandes...</div>;
+    }
+  
+
+    const fetchMenu = async () => {
+      try {
+        const token = localStorage.getItem("access_token");
+        if (!token) throw new Error("Pas de token trouvé, reconnectez-vous");
+        const response = await fetch("http://localhost:8000/api/admin/menu/", {
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`,
+          },
+        });
+        if (!response.ok) throw new Error("Erreur lors du fetch du menu");
+        const data = await response.json();
+        setMenu(data);
+      } catch (error) {
+        console.error(error);
     }
   };
 
-  const getStatusIcon = (status: Order['status']) => {
-    switch (status) {
-      case 'pending': return <AlertCircle className="w-4 h-4" />;
-      case 'preparing': return <ChefHat className="w-4 h-4" />;
-      case 'ready': return <CheckCircle className="w-4 h-4" />;
-      case 'served': return <CheckCircle className="w-4 h-4" />;
-      default: return <Timer className="w-4 h-4" />;
+  const handleAddDish = async () => {
+    const formData = new FormData();
+    formData.append("nom_plat", newDish.nom_plat);
+    formData.append("prix", newDish.prix.toString());
+    formData.append("categorie", newDish.categorie);
+    formData.append("description", newDish.description);
+    formData.append("disponibilite", newDish.disponibilite ? "true" : "false");
+    if (newDish.image) formData.append("image", newDish.image);
+
+    try {
+      const token = localStorage.getItem("access_token");
+      if (!token) throw new Error("Pas de token trouvé, reconnectez-vous");
+      const url = editingDish
+        ? `http://localhost:8000/api/admin/menu/${editingDish.id}/`
+        : "http://localhost:8000/api/admin/menu/";
+      
+      const method = editingDish ? "PUT" : "POST";
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          // Supprime "Content-Type" pour que FormData fonctionne correctement
+          "Authorization": `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) throw new Error("Erreur lors de l'envoi du plat");
+
+      fetchMenu(); // Recharger le menu
+      setShowDishModal(false);
+    } catch (error) {
+      console.error(error);
+      alert("Erreur lors de l'ajout/modification du plat");
     }
   };
 
-  const updateOrderStatus = (orderId: string, newStatus: Order['status']) => {
-    setOrders(prev => prev.map(order => 
-      order.id === orderId ? { ...order, status: newStatus } : order
-    ));
+
+  const handleEditDish = async (id: number, updatedDish: any) => {
+    try {
+      const formData = new FormData();
+      formData.append("nom_plat", updatedDish.nom_plat);
+      formData.append("prix", updatedDish.prix);
+      formData.append("categorie", updatedDish.categorie);
+      formData.append("description", updatedDish.description);
+      formData.append("disponibilite", updatedDish.disponibilite);
+      formData.append("ingredients", updatedDish.ingredients);
+      if (updatedDish.image) formData.append("image", updatedDish.image);
+      const token = localStorage.getItem("access_token");
+        if (!token) throw new Error("Pas de token trouvé, reconnectez-vous");
+
+      const response = await fetch(`http://localhost:8000/api/admin/menu/${id}/`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) throw new Error("Erreur lors de la modification du plat");
+
+      // Mettre à jour la liste locale après modification
+      const updated = await response.json();
+      setMenu(menu.map((m) => (m.id === id ? updated : m)));
+
+      setShowDishModal(false);
+      setCurrentDish(null);
+    } catch (error) {
+      console.error("Erreur du backend :", error);
+      alert("Erreur lors de la modification du plat");
+    }
   };
+
+  const handleDeleteDish = async (id: number) => {
+    const token = localStorage.getItem("access_token");
+    try {
+      const response = await fetch(`http://localhost:8000/api/admin/menu/${id}/`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) throw new Error("Erreur lors de la suppression");
+
+      setMenu((prev) => prev.filter((dish) => dish.id !== id));
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const handleViewDish = async (id: number) => {
+    const token = localStorage.getItem("access_token");
+    try {
+      const response = await fetch(`http://localhost:8000/api/admin/menu/${id}/`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) throw new Error("Erreur lors de la récupération du plat");
+
+      const dishDetails = await response.json();
+      console.log(dishDetails);
+      // ici tu peux ouvrir un modal pour afficher les infos
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
 
   return (
     <div className="min-h-screen bg-background">
@@ -166,7 +504,6 @@ const Dashboard = () => {
             <TabsTrigger value="reviews">Avis</TabsTrigger>
             <TabsTrigger value="customers">Clients</TabsTrigger>
             <TabsTrigger value="analytics">Statistiques</TabsTrigger>
-            <TabsTrigger value="kitchen">Cuisine</TabsTrigger>
           </TabsList>
 
           {/* Overview Tab */}
@@ -179,7 +516,7 @@ const Dashboard = () => {
                   <DollarSign className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{stats.revenue}€</div>
+                  <div className="text-2xl font-bold">{stats.todaySales}FCFA</div>
                   <p className="text-xs text-muted-foreground">+12% par rapport à hier</p>
                 </CardContent>
               </Card>
@@ -212,7 +549,7 @@ const Dashboard = () => {
                   <Users className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{stats.customerCount}</div>
+                  <div className="text-2xl font-bold">{stats.total_clients}</div>
                   <p className="text-xs text-muted-foreground">Aujourd'hui</p>
                 </CardContent>
               </Card>
@@ -229,21 +566,21 @@ const Dashboard = () => {
                   {orders.slice(0, 4).map((order) => (
                     <div key={order.id} className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
-                        <Badge className={getStatusColor(order.status)}>
-                          {getStatusIcon(order.status)}
-                          <span className="ml-1 capitalize">{order.status}</span>
+                        <Badge className={getStatusColor(order.statut)}>
+                          {getStatusIcon(order.statut)}
+                          <span className="ml-1 capitalize">{order.statut}</span>
                         </Badge>
                         <div>
-                          <p className="font-medium">{order.tableNumber}</p>
+                          <p className="font-medium">{order.table}</p>
                           <p className="text-sm text-muted-foreground">
-                            {order.items.join(', ')}
+                            {order.plats.join(', ')}
                           </p>
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="font-medium">{order.total}€</p>
+                        <p className="font-medium">{order.total}FCFA</p>
                         <p className="text-sm text-muted-foreground">
-                          {order.estimatedTime > 0 ? `${order.estimatedTime} min` : 'Prêt'}
+                          {Math.floor((currentTime.getTime() - new Date(order.date_commande).getTime()) / 60000)} min
                         </p>
                       </div>
                     </div>
@@ -260,9 +597,9 @@ const Dashboard = () => {
                   <div>
                     <div className="flex justify-between text-sm mb-2">
                       <span>Objectif revenus</span>
-                      <span>{stats.revenue}/5000€</span>
+                      <span>{stats.todaySales}/5000FCFA</span>
                     </div>
-                    <Progress value={(stats.revenue / 5000) * 100} className="h-2" />
+                    <Progress value={(stats.todaySales / 5000) * 100} className="h-2" />
                   </div>
                   
                   <div>
@@ -286,6 +623,7 @@ const Dashboard = () => {
           </TabsContent>
 
           {/* Menu Tab */}
+          {/* Menu Tab */}
           <TabsContent value="menu" className="space-y-6">
             <Card>
               <CardHeader>
@@ -297,41 +635,161 @@ const Dashboard = () => {
                     </CardTitle>
                     <CardDescription>Gérer les plats, prix et disponibilité</CardDescription>
                   </div>
-                  <Button className="flex items-center space-x-2">
+                  {/* Bouton pour ouvrir le formulaire d'ajout */}
+                  <Button
+                    className="flex items-center space-x-2"
+                    onClick={() => {
+                      setCurrentDish(null); // ajout
+                      setShowDishModal(true);
+                    }}
+                  >
                     <Plus className="w-4 h-4" />
                     <span>Ajouter un plat</span>
                   </Button>
+
+                  {/* Modal/Formulaire */}
+                  {showDishModal && (
+                    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+                      <div className="bg-white p-6 rounded-lg w-96">
+                        <h2 className="text-xl font-semibold mb-4">
+                          {currentDish ? "Modifier le plat" : "Ajouter un nouveau plat"}
+                        </h2>
+
+                        <input
+                          type="text"
+                          placeholder="Nom du plat"
+                          className="w-full mb-2 p-2 border rounded"
+                          value={currentDish?.nom_plat || newDish.nom_plat}
+                          onChange={(e) =>
+                            currentDish
+                              ? setCurrentDish({ ...currentDish, nom_plat: e.target.value })
+                              : setNewDish({ ...newDish, nom_plat: e.target.value })
+                          }
+                        />
+                        <input
+                          type="number"
+                          placeholder="Prix"
+                          className="w-full mb-2 p-2 border rounded"
+                          value={currentDish?.prix || newDish.prix}
+                          onChange={(e) =>
+                            currentDish
+                              ? setCurrentDish({ ...currentDish, prix: e.target.value })
+                              : setNewDish({ ...newDish, prix: e.target.value })
+                          }
+                        />
+                        <select
+                          className="w-full mb-2 p-2 border rounded"
+                          value={currentDish ? currentDish.categorie : newDish.categorie}
+                          onChange={(e) => {
+                            currentDish
+                              ? setCurrentDish({ ...currentDish, categorie: e.target.value })
+                              : setNewDish({ ...newDish, categorie: e.target.value });
+                          }}
+                        >
+                          <option value="">-- Sélectionner une catégorie --</option>
+                          <option value="entree">Entrée</option>
+                          <option value="plat_principal">Plat principal</option>
+                          <option value="dessert">Dessert</option>
+                          <option value="boisson">Boisson</option>
+                          <option value="accompagnement">Accompagnement</option>
+                          <option value="autre">Autre</option>
+                        </select>
+
+                        <textarea
+                          placeholder="Description"
+                          className="w-full mb-2 p-2 border rounded"
+                          value={currentDish?.description || newDish.description}
+                          onChange={(e) =>
+                            currentDish
+                              ? setCurrentDish({ ...currentDish, description: e.target.value })
+                              : setNewDish({ ...newDish, description: e.target.value })
+                          }
+                        />
+                        <textarea
+                          placeholder="Ingredients"
+                          className="w-full mb-4 p-2 border rounded"
+                          value={currentDish?.ingredients || newDish.ingredients}
+                          onChange={(e) =>
+                            currentDish
+                              ? setCurrentDish({ ...currentDish, ingredients: e.target.value })
+                              : setNewDish({ ...newDish, ingredients: e.target.value })
+                          }
+                        />
+
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="w-full mb-4"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              currentDish
+                                ? setCurrentDish({ ...currentDish, image: file })
+                                : setNewDish({ ...newDish, image: file });
+                            }
+                          }}
+                        />
+
+                        <div className="flex justify-end space-x-2">
+                          <Button variant="outline" onClick={() => setShowDishModal(false)}>
+                            Annuler
+                          </Button>
+                          <Button
+                            onClick={() => {
+                              if (currentDish) {
+                                handleEditDish(currentDish.id, currentDish); // modification
+                              } else {
+                                handleAddDish(); // ajout
+                              }
+                            }}
+                          >
+                            {currentDish ? "Modifier" : "Ajouter"}
+                          </Button>
+
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </CardHeader>
+
               <CardContent>
                 <div className="space-y-4">
-                  {[
-                    { name: 'Burger Royal', price: '14.50€', category: 'Burgers', available: true },
-                    { name: 'Pizza Margherita', price: '16.00€', category: 'Pizzas', available: true },
-                    { name: 'Pâtes Carbonara', price: '12.50€', category: 'Pâtes', available: false },
-                    { name: 'Salade César', price: '11.00€', category: 'Salades', available: true }
-                  ].map((dish, index) => (
-                    <Card key={index} className="p-4">
+                  {menu.map((dish) => (
+                    <Card key={dish.id} className="p-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-4">
                           <div>
-                            <h4 className="font-semibold">{dish.name}</h4>
-                            <p className="text-sm text-muted-foreground">{dish.category}</p>
+                            <h4 className="font-semibold">{dish.nom_plat}</h4>
+                            <p className="text-sm text-muted-foreground">{dish.categorie}</p>
                           </div>
-                          <Badge variant={dish.available ? "default" : "secondary"}>
-                            {dish.available ? "Disponible" : "Indisponible"}
+                          <Badge variant={dish.disponibilite ? "default" : "secondary"}>
+                            {dish.disponibilite ? "Disponible" : "Indisponible"}
                           </Badge>
                         </div>
                         <div className="flex items-center space-x-4">
-                          <span className="font-medium text-lg">{dish.price}</span>
+                          <span className="font-medium text-lg">{dish.prix} FCFA</span>
                           <div className="flex space-x-2">
-                            <Button size="sm" variant="outline">
+                            {/* ✅ On utilise dish, pas plat */}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => startEditDish(dish)}
+                            >
                               <Edit className="w-4 h-4" />
                             </Button>
-                            <Button size="sm" variant="outline">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => alert(JSON.stringify(dish, null, 2))}
+                            >
                               <Eye className="w-4 h-4" />
                             </Button>
-                            <Button size="sm" variant="outline">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleDeleteDish(dish.id)}
+                            >
                               <Trash2 className="w-4 h-4" />
                             </Button>
                           </div>
@@ -343,6 +801,7 @@ const Dashboard = () => {
               </CardContent>
             </Card>
           </TabsContent>
+
 
           {/* Orders Tab */}
           <TabsContent value="orders" className="space-y-6">
@@ -357,45 +816,51 @@ const Dashboard = () => {
                     <Card key={order.id} className="p-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-4">
-                          <Badge className={getStatusColor(order.status)}>
-                            {getStatusIcon(order.status)}
-                            <span className="ml-1 capitalize">{order.status}</span>
+                          <Badge className={getStatusColor(order.statut)}>
+                            {getStatusIcon(order.statut)}
+                            <span className="ml-1 capitalize">{order.statut}</span>
                           </Badge>
                           <div>
-                            <h4 className="font-semibold">{order.id} - {order.tableNumber}</h4>
+                            <h4 className="font-semibold">{order.id} - {order.table}</h4>
                             <p className="text-sm text-muted-foreground">
-                              Commandé il y a {Math.floor((Date.now() - order.orderTime.getTime()) / 60000)} min
+                              {getTimeElapsed(order.date_commande) > 0
+                                ? `${getTimeElapsed(order.date_commande)} min`
+                                : 'Prêt'}
                             </p>
+
                           </div>
                         </div>
                         <div className="flex items-center space-x-4">
                           <div className="text-right">
-                            <p className="font-medium">{order.total}€</p>
+                            <p className="font-medium">{order.total}FCFA</p>
                             <p className="text-sm text-muted-foreground">
-                              {order.estimatedTime > 0 ? `${order.estimatedTime} min restantes` : 'Prêt à servir'}
+                              {getTimeElapsed(order.date_commande) > 0
+                                ? `${getTimeElapsed(order.date_commande)} min`
+                                : 'Prêt'}
                             </p>
+
                           </div>
                           <div className="flex space-x-2">
-                            {order.status === 'pending' && (
+                            {order.statut === 'confirmee' && (
                               <Button 
                                 size="sm" 
-                                onClick={() => updateOrderStatus(order.id, 'preparing')}
+                                onClick={() => updateOrderStatus(order.id, 'en_cours')}
                               >
                                 Préparer
                               </Button>
                             )}
-                            {order.status === 'preparing' && (
+                            {order.statut === 'en_cours' && (
                               <Button 
                                 size="sm" 
-                                onClick={() => updateOrderStatus(order.id, 'ready')}
+                                onClick={() => updateOrderStatus(order.id, 'pretee')}
                               >
                                 Prêt
                               </Button>
                             )}
-                            {order.status === 'ready' && (
+                            {order.statut === 'pretee' && (
                               <Button 
                                 size="sm" 
-                                onClick={() => updateOrderStatus(order.id, 'served')}
+                                onClick={() => updateOrderStatus(order.id, 'servie')}
                               >
                                 Servir
                               </Button>
@@ -406,9 +871,9 @@ const Dashboard = () => {
                       <Separator className="my-3" />
                       <div className="space-y-1">
                         <p className="text-sm font-medium">Articles commandés:</p>
-                        {order.items.map((item, index) => (
-                          <p key={index} className="text-sm text-muted-foreground">• {item}</p>
-                        ))}
+                        <p className="text-sm text-muted-foreground">
+                          {order.client ? `Client: ${order.client}` : `Table ${order.table}`}
+                        </p>
                       </div>
                     </Card>
                   ))}
@@ -559,68 +1024,49 @@ const Dashboard = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {[
-                    { 
-                      name: 'Marie Dubois', 
-                      email: 'marie.d@email.com', 
-                      orders: 23, 
-                      total: '450€', 
-                      lastVisit: '2 jours',
-                      loyalty: 245
-                    },
-                    { 
-                      name: 'Jean Petit', 
-                      email: 'jean.p@email.com', 
-                      orders: 15, 
-                      total: '320€', 
-                      lastVisit: '1 semaine',
-                      loyalty: 156
-                    },
-                    { 
-                      name: 'Sophie Laurent', 
-                      email: 'sophie.l@email.com', 
-                      orders: 31, 
-                      total: '670€', 
-                      lastVisit: '1 jour',
-                      loyalty: 389
-                    }
-                  ].map((customer, index) => (
-                    <Card key={index} className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-4">
-                          <div>
-                            <h4 className="font-semibold">{customer.name}</h4>
-                            <p className="text-sm text-muted-foreground">{customer.email}</p>
+                  {loadingClients ? (
+                    <p>Chargement des clients...</p>
+                  ) : (
+                    clients.map((client) => (
+                      <Card key={client.id} className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-4">
+                            <div>
+                              <h4 className="font-semibold">{client.firstname} {client.lastname}</h4>
+                              <p className="text-sm text-muted-foreground">{client.email}</p>
+                            </div>
+                            <div className="text-center">
+                              {/* <p className="text-sm font-medium">{client.orders?.length || 0} commandes</p> */}
+                              <p className="text-xs text-muted-foreground">
+                                Total: {client.loyalty_points || "0€"}
+                              </p>
+                            </div>
+                            <div className="text-center">
+                              <p className="text-sm font-medium">{client.loyalty_points} pts</p>
+                              <p className="text-xs text-muted-foreground">Fidélité</p>
+                            </div>
                           </div>
-                          <div className="text-center">
-                            <p className="text-sm font-medium">{customer.orders} commandes</p>
-                            <p className="text-xs text-muted-foreground">Total: {customer.total}</p>
-                          </div>
-                          <div className="text-center">
-                            <p className="text-sm font-medium">{customer.loyalty} pts</p>
-                            <p className="text-xs text-muted-foreground">Fidélité</p>
+                          <div className="flex items-center space-x-4">
+                            <div className="text-right">
+                              <p className="text-sm">Dernière visite</p>
+                              <p className="text-xs text-muted-foreground">{client.last_login || "—"}</p>
+                            </div>
+                            <div className="flex space-x-2">
+                              <Button size="sm" variant="outline" onClick={() => handleViewClient(client.id)}>
+                                <Eye className="w-4 h-4" />
+                              </Button>
+                              <Button size="sm" variant="outline" onClick={() => handleEditClient(client)}>
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button size="sm" variant="outline" onClick={() => handleDeleteClient(client.id)}>
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
                           </div>
                         </div>
-                        <div className="flex items-center space-x-4">
-                          <div className="text-right">
-                            <p className="text-sm">Dernière visite</p>
-                            <p className="text-xs text-muted-foreground">{customer.lastVisit}</p>
-                          </div>
-                          <div className="flex space-x-2">
-                            <Button size="sm" variant="outline">
-                              <Eye className="w-4 h-4" />
-                            </Button>
-                            <Button size="sm" variant="outline">
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                            <Button size="sm" variant="outline">
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    </Card>
-                  ))}
+                      </Card>
+                    ))
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -784,57 +1230,6 @@ const Dashboard = () => {
             </div>
           </TabsContent>
 
-          {/* Kitchen Tab */}
-          <TabsContent value="kitchen" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <ChefHat className="w-5 h-5" />
-                  <span>Vue Cuisine</span>
-                </CardTitle>
-                <CardDescription>Commandes à préparer et en cours</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {orders.filter(order => order.status === 'pending' || order.status === 'preparing').map((order) => (
-                    <Card key={order.id} className="p-4 border-2">
-                      <div className="space-y-3">
-                        <div className="flex justify-between items-center">
-                          <h4 className="font-bold text-lg">{order.tableNumber}</h4>
-                          <Badge className={getStatusColor(order.status)}>
-                            {order.status === 'pending' ? 'À préparer' : 'En cours'}
-                          </Badge>
-                        </div>
-                        <div className="space-y-2">
-                          {order.items.map((item, index) => (
-                            <div key={index} className="flex items-center justify-between">
-                              <span className="text-sm font-medium">{item}</span>
-                            </div>
-                          ))}
-                        </div>
-                        <Separator />
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm text-muted-foreground">
-                            {Math.floor((Date.now() - order.orderTime.getTime()) / 60000)} min
-                          </span>
-                          <Button 
-                            size="sm" 
-                            variant={order.status === 'pending' ? 'default' : 'outline'}
-                            onClick={() => updateOrderStatus(
-                              order.id, 
-                              order.status === 'pending' ? 'preparing' : 'ready'
-                            )}
-                          >
-                            {order.status === 'pending' ? 'Commencer' : 'Terminer'}
-                          </Button>
-                        </div>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
         </Tabs>
       </div>
     </div>
