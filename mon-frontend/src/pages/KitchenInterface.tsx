@@ -145,7 +145,7 @@ const KitchenInterface = () => {
     return Math.floor((currentTime.getTime() - orderTime.getTime()) / 60000);
   };
 
-  const pendingOrders = orders?.filter((order) => order.statut === "confirmee") || [];
+  const pendingOrders = orders?.filter((order) => order.statut === "en_attente") || [];
   const preparingOrders = orders?.filter((order) => order.statut === "en_cours") || [];
   const readyOrders = orders?.filter((order) => order.statut === "pretee") || [];
 
@@ -227,7 +227,7 @@ const KitchenInterface = () => {
                     onClick={() => updateOrderStatus(order.id, "en_cours")}
                   >
                     <Flame className="w-4 h-4 mr-1" />
-                    Commencer
+                    Confirmer
                   </Button>
                 </div>
               </CardContent>

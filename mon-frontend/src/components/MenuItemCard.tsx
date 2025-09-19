@@ -37,6 +37,11 @@ const hasCustomizations = item.category !== 'boisson';
               <p className={`text-gray-600 mb-2 line-clamp-2 ${isMobile ? 'text-base' : 'text-sm'}`}>
                 {item.description}
               </p>
+              <img 
+                src={`http://localhost:8000${item.image}`} 
+                alt={item.name} 
+                style={{ width: "200px", height: "150px", objectFit: "cover" }} 
+              />
               
               {item.allergens && item.allergens.length > 0 && (
                 <div className="flex flex-wrap gap-1 mb-2">

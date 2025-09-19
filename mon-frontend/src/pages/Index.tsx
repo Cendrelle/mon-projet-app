@@ -25,6 +25,7 @@ import { QrCode, MapPin, User as UserIcon, Gift, LogOut, History, Settings } fro
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { useOrders } from "@/hooks/useOrders";
+import NotesModal from '@/components/NotesModal';
 
 type AppState = 'scanner' | 'login' | 'menu' | 'orderType' | 'payment' | 'tracking' | 'history';
 
@@ -32,7 +33,22 @@ const Index = () => {
   const [appState, setAppState] = useState<AppState>('scanner');
   const [tableNumber, setTableNumber] = useState<string>('');
   const [orderType, setOrderType] = useState<'dine-in' | 'takeaway'>('dine-in');
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User>({
+  id: "",
+  name: "",
+  email: "",
+  firstname: "",
+  lastname: "",
+  phone: "",
+  loyaltyPoints: {
+    earned_points: 0,
+    total_points: 0,
+  },
+  orderHistory: [],
+  preferences: [],
+  date_joined: "",
+});
+
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [showLoyaltyModal, setShowLoyaltyModal] = useState(false);
   const [orderNotes, setOrderNotes] = useState<string>('');
@@ -48,6 +64,10 @@ const Index = () => {
   const [dailySpecials, setDailySpecials] = useState<MenuItem[]>([])
   const { authFetch } = useAuth()
   const [loyaltyPoints, setLoyaltyPoints] = useState<{ earned_points: number; total_points: number } | null>(null);
+  // State pour gérer le texte et la note en attente
+  const [showNotesModal, setShowNotesModal] = useState(false);
+  const [pendingRating, setPendingRating] = useState<number | null>(null);
+
   
   const handleCloseModal = () => setShowLoyaltyModal(false);
   useEffect(() => {
@@ -236,7 +256,7 @@ const Index = () => {
           id: user.id,
           name: user.name,
           email: user.email,
-          loyaltyPoints: user.loyaltyPoints
+          loyaltyPoints: user.loyaltyPoints = data.total_points
         } : undefined
       };
 
@@ -248,7 +268,11 @@ const Index = () => {
       // Simulation de points de fidélité
       if (user) {
         const pointsEarned = Math.floor(getTotal());
-        setUser({ ...user, loyaltyPoints: user.loyaltyPoints + pointsEarned });
+        setUser({ ...user, loyaltyPoints: {
+          ...user.loyaltyPoints,
+          earned_points: user.loyaltyPoints.earned_points + pointsEarned,
+          total_points: user.loyaltyPoints.total_points + pointsEarned, // si tu veux aussi incrémenter
+        }});
         toast({
           title: "Commande confirmée !",
           description: `Votre commande a été transmise. +${pointsEarned} points de fidélité gagnés !`,
@@ -301,14 +325,37 @@ const Index = () => {
       }
     };
   }, [currentOrder?.status]);
-  
-  const handleRateOrder = (rating: number) => {
-    if (orderToRate) {
-      // Ici on pourrait envoyer la note au backend
-      console.log('Rating submitted:', { orderId: orderToRate.id, rating });
+  const submitRating = async (rating: number, notes: string) => {
+    if (!orderToRate) return;
+
+    try {
+      const response = await authFetch('http://localhost:8000/api/avis/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          client: user?.id,
+          commande: orderToRate.id,
+          note: rating,
+          description: notes
+        }),
+      });
+
+      if (!response.ok) throw new Error('Erreur lors de l’envoi de la note');
+
+      toast({
+        title: 'Merci pour votre avis !',
+        description: 'Votre note a été enregistrée avec succès.',
+      });
+
       setShowRatingNotification(false);
       setOrderToRate(null);
       completeCurrentOrder();
+    } catch (error: any) {
+      toast({
+        title: 'Erreur',
+        description: error.message || 'Impossible d’envoyer votre note.',
+        variant: 'destructive',
+      });
     }
   };
   
@@ -437,7 +484,7 @@ const Index = () => {
                     className={`bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100 ${isMobile ? 'min-h-12 px-4' : ''}`}
                   >
                     <Gift className={`${isMobile ? 'w-4 h-4 mr-2' : 'w-3 h-3 mr-1'}`} />
-                    {user.loyaltyPoints} pts
+                    {user?.loyaltyPoints?.total_points ?? 0} pts
                   </Button>
                   <Button
                     variant="outline"
@@ -552,8 +599,34 @@ const Index = () => {
       {showRatingNotification && orderToRate && (
         <RatingNotification
           order={orderToRate}
-          onRate={handleRateOrder}
-          onDismiss={handleDismissRating}
+          onRate={(rating: number) => {
+            setPendingRating(rating);  // stocke la note
+            setShowNotesModal(true);   // ouvre le modal pour le commentaire
+            setShowRatingNotification(false); // masque notification mais ne supprime pas orderToRate
+          }}
+          onDismiss={() => {
+            setShowRatingNotification(false);
+            setOrderToRate(null); // supprimer seulement si l'utilisateur ignore la note
+          }}
+        />
+      )}
+
+      {/* Notes Modal */}
+      {showNotesModal && (
+        <NotesModal
+          currentNotes=""
+          onConfirm={(notes) => {
+            if (pendingRating !== null && orderToRate) {
+              submitRating(pendingRating, notes); // fetch sera lancé ici
+              setPendingRating(null);
+              setShowNotesModal(false);
+              setOrderToRate(null); // nettoyage après l'envoi
+            }
+          }}
+          onCancel={() => {
+            setPendingRating(null);
+            setShowNotesModal(false);
+          }}
         />
       )}
 

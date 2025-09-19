@@ -33,12 +33,19 @@ import {
 } from 'lucide-react';
 
 interface DashboardStats {
+  total_clients: number;       // total des clients
+  total_commandes: number;
   todaySales: number;
-  activeOrders: number;
+  active_orders: number;
   avgWaitTime: number;
   customerCount: number;
   completedOrders: number;
   revenue: number;
+  plats_populaires: 
+    {
+      nom_plat: string,
+      nb_ventes: number
+    }[],
 }
 
 interface PlatMenu {
@@ -118,20 +125,41 @@ const Dashboard = () => {
     image: null
   });
 
-  const [editingDish, setEditingDish] = useState<any>(null); // pour la modification
+  const [editingDish, setEditingDish] = useState<any>(null); 
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [menu, setMenu] = useState<PlatMenu[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [loadingClients, setLoadingClients] = useState(true);
-  const [stats, setStats] = useState<AnalyticsStats | null>(null);
+  const [payments, setPayments] = useState<any[]>([]);
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [stats, setStats] = useState<DashboardStats>(
+    {todaySales: 0,
+      total_clients: 0,      // total des clients
+      total_commandes: 0,
+      active_orders: 0,
+      avgWaitTime: 0,
+      customerCount: 0,
+      completedOrders: 0,
+      revenue: 0,
+      plats_populaires: 
+      [{
+        nom_plat: "",
+        nb_ventes: 0
+      },]
+    });
+      
   const [loadingStats, setLoadingStats] = useState(true);
 
   // --- pour ouvrir le modal et pré-remplir ---
   const startEditDish = (dish: any) => {
+    console.log("Edition d'un plat:", dish);
+    setCurrentDish(dish);
     setEditingDish(dish);      // stocke le plat en cours d’édition
     setNewDish(dish);          // pré-remplit le formulaire avec ses valeurs
-    setShowAddModal(true);     // ouvre le modal
+    setShowAddModal(true); 
+    setShowDishModal(true); 
+    console.log("currentDish après set:", currentDish, "showDishModal:", showDishModal);    // ouvre le modal
   };
 
   const handleOpenEdit = (dish: any) => {
@@ -150,6 +178,17 @@ const Dashboard = () => {
     disponibilite: boolean;
     image?: File | null;
   }>(null);
+
+  const [analytics, setAnalytics] = useState({
+    total_clients: 0,
+    total_commandes: 0,
+    completed_orders: 0,
+    active_orders: 0,
+    revenue: 0,
+    avgWaitTime: 0,
+    plats_populaires: []
+  });
+
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -279,6 +318,124 @@ const handleDeleteClient = async (id: number) => {
   
       fetchOrders();
     }, []);
+
+    const fetchMenu = async () => {
+      try {
+        const token = localStorage.getItem("access_token");
+        if (!token) throw new Error("Pas de token trouvé, reconnectez-vous");
+          const response = await fetch("http://localhost:8000/api/admin/menu/", {
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${token}`,
+            },
+          });
+          if (!response.ok) throw new Error("Erreur lors du fetch du menu");
+          const data = await response.json();
+          setMenu(data);
+        } catch (error) {
+          console.error(error);
+      }
+    };
+  useEffect(() => {
+    fetchMenu();
+  }, []);
+
+  const fetchPayments = async () => {
+    try {
+      const token = localStorage.getItem("access_token");
+      const response = await fetch("http://localhost:8000/api/admin/paiements/", {
+        headers: {
+          "Authorization": `Bearer ${token}`,
+        },
+      });
+      if (!response.ok) throw new Error("Erreur lors du fetch des paiements");
+      const data = await response.json();
+      setPayments(data);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+  useEffect(() => {
+    fetchPayments();
+  }, []);
+
+  // Valider un paiement
+  const handleValidatePayment = async (paymentId: number) => {
+    try {
+      // trouve le paiement correspondant dans ton state
+      const payment = payments.find(p => p.id === paymentId);
+      if (!payment) return;
+
+      // prépare les données à envoyer
+      const updatedPayment = {
+        ...payment,
+        status: "success" // on passe de pending → success
+      };
+
+      // envoie le PUT au backend
+      const res = await fetch(`http://localhost:8000/api/admin/paiements/${paymentId}/`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`
+        },
+        body: JSON.stringify(updatedPayment)
+      });
+
+      if (!res.ok) throw new Error("Erreur lors de la validation");
+
+      const data = await res.json();
+      console.log("Paiement validé:", data);
+
+      // met à jour le state local pour refléter le changement
+      setPayments(prev =>
+        prev.map(p => (p.id === paymentId ? { ...p, status: "success" } : p))
+      );
+    } catch (err) {
+      console.error("Erreur validate payment:", err);
+    }
+  };
+
+
+  // Récupérer les avis
+  const fetchReviews = async () => {
+    try {
+      const token = localStorage.getItem("access_token");
+      const response = await fetch("http://localhost:8000/api/admin/avis/", {
+        headers: {
+          "Authorization": `Bearer ${token}`,
+        },
+      });
+      if (!response.ok) throw new Error("Erreur lors du fetch des avis");
+      const data = await response.json();
+      setReviews(data);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+  useEffect(() => {
+    fetchReviews();
+  }, []);
+
+  // Répondre à un avis
+  const handleRespondReview = async (id: number, message: string) => {
+    try {
+      const token = localStorage.getItem("access_token");
+      const response = await fetch(`http://localhost:8000/api/admin/avis/${id}/respond/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({ message }),
+      });
+      if (!response.ok) throw new Error("Erreur réponse avis");
+      fetchReviews();
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   
   
     const getStatusColor = (status: Order["statut"]) => {
@@ -332,32 +489,15 @@ const handleDeleteClient = async (id: number) => {
     if (loading) {
       return <div className="p-6">Chargement des commandes...</div>;
     }
-  
 
-    const fetchMenu = async () => {
-      try {
-        const token = localStorage.getItem("access_token");
-        if (!token) throw new Error("Pas de token trouvé, reconnectez-vous");
-        const response = await fetch("http://localhost:8000/api/admin/menu/", {
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`,
-          },
-        });
-        if (!response.ok) throw new Error("Erreur lors du fetch du menu");
-        const data = await response.json();
-        setMenu(data);
-      } catch (error) {
-        console.error(error);
-    }
-  };
-
+    
   const handleAddDish = async () => {
     const formData = new FormData();
     formData.append("nom_plat", newDish.nom_plat);
     formData.append("prix", newDish.prix.toString());
     formData.append("categorie", newDish.categorie);
     formData.append("description", newDish.description);
+    formData.append("image", newDish.image);
     formData.append("disponibilite", newDish.disponibilite ? "true" : "false");
     if (newDish.image) formData.append("image", newDish.image);
 
@@ -399,10 +539,12 @@ const handleDeleteClient = async (id: number) => {
       formData.append("description", updatedDish.description);
       formData.append("disponibilite", updatedDish.disponibilite);
       formData.append("ingredients", updatedDish.ingredients);
-      if (updatedDish.image) formData.append("image", updatedDish.image);
+      if (updatedDish.image instanceof File)formData.append("image", updatedDish.image);
+      for (let pair of formData.entries()) {
+        console.log(pair[0], ":", pair[1]);
+      }
       const token = localStorage.getItem("access_token");
-        if (!token) throw new Error("Pas de token trouvé, reconnectez-vous");
-
+      if (!token) throw new Error("Pas de token trouvé, reconnectez-vous");
       const response = await fetch(`http://localhost:8000/api/admin/menu/${id}/`, {
         method: "PUT",
         headers: {
@@ -462,7 +604,6 @@ const handleDeleteClient = async (id: number) => {
     }
   };
 
-
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -516,7 +657,7 @@ const handleDeleteClient = async (id: number) => {
                   <DollarSign className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{stats.todaySales}FCFA</div>
+                  <div className="text-2xl font-bold">{stats.revenue}FCFA</div>
                   <p className="text-xs text-muted-foreground">+12% par rapport à hier</p>
                 </CardContent>
               </Card>
@@ -527,7 +668,7 @@ const handleDeleteClient = async (id: number) => {
                   <ShoppingCart className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{stats.activeOrders}</div>
+                  <div className="text-2xl font-bold">{stats.active_orders}</div>
                   <p className="text-xs text-muted-foreground">En cours de traitement</p>
                 </CardContent>
               </Card>
@@ -623,7 +764,6 @@ const handleDeleteClient = async (id: number) => {
           </TabsContent>
 
           {/* Menu Tab */}
-          {/* Menu Tab */}
           <TabsContent value="menu" className="space-y-6">
             <Card>
               <CardHeader>
@@ -647,109 +787,7 @@ const handleDeleteClient = async (id: number) => {
                     <span>Ajouter un plat</span>
                   </Button>
 
-                  {/* Modal/Formulaire */}
-                  {showDishModal && (
-                    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-                      <div className="bg-white p-6 rounded-lg w-96">
-                        <h2 className="text-xl font-semibold mb-4">
-                          {currentDish ? "Modifier le plat" : "Ajouter un nouveau plat"}
-                        </h2>
-
-                        <input
-                          type="text"
-                          placeholder="Nom du plat"
-                          className="w-full mb-2 p-2 border rounded"
-                          value={currentDish?.nom_plat || newDish.nom_plat}
-                          onChange={(e) =>
-                            currentDish
-                              ? setCurrentDish({ ...currentDish, nom_plat: e.target.value })
-                              : setNewDish({ ...newDish, nom_plat: e.target.value })
-                          }
-                        />
-                        <input
-                          type="number"
-                          placeholder="Prix"
-                          className="w-full mb-2 p-2 border rounded"
-                          value={currentDish?.prix || newDish.prix}
-                          onChange={(e) =>
-                            currentDish
-                              ? setCurrentDish({ ...currentDish, prix: e.target.value })
-                              : setNewDish({ ...newDish, prix: e.target.value })
-                          }
-                        />
-                        <select
-                          className="w-full mb-2 p-2 border rounded"
-                          value={currentDish ? currentDish.categorie : newDish.categorie}
-                          onChange={(e) => {
-                            currentDish
-                              ? setCurrentDish({ ...currentDish, categorie: e.target.value })
-                              : setNewDish({ ...newDish, categorie: e.target.value });
-                          }}
-                        >
-                          <option value="">-- Sélectionner une catégorie --</option>
-                          <option value="entree">Entrée</option>
-                          <option value="plat_principal">Plat principal</option>
-                          <option value="dessert">Dessert</option>
-                          <option value="boisson">Boisson</option>
-                          <option value="accompagnement">Accompagnement</option>
-                          <option value="autre">Autre</option>
-                        </select>
-
-                        <textarea
-                          placeholder="Description"
-                          className="w-full mb-2 p-2 border rounded"
-                          value={currentDish?.description || newDish.description}
-                          onChange={(e) =>
-                            currentDish
-                              ? setCurrentDish({ ...currentDish, description: e.target.value })
-                              : setNewDish({ ...newDish, description: e.target.value })
-                          }
-                        />
-                        <textarea
-                          placeholder="Ingredients"
-                          className="w-full mb-4 p-2 border rounded"
-                          value={currentDish?.ingredients || newDish.ingredients}
-                          onChange={(e) =>
-                            currentDish
-                              ? setCurrentDish({ ...currentDish, ingredients: e.target.value })
-                              : setNewDish({ ...newDish, ingredients: e.target.value })
-                          }
-                        />
-
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="w-full mb-4"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              currentDish
-                                ? setCurrentDish({ ...currentDish, image: file })
-                                : setNewDish({ ...newDish, image: file });
-                            }
-                          }}
-                        />
-
-                        <div className="flex justify-end space-x-2">
-                          <Button variant="outline" onClick={() => setShowDishModal(false)}>
-                            Annuler
-                          </Button>
-                          <Button
-                            onClick={() => {
-                              if (currentDish) {
-                                handleEditDish(currentDish.id, currentDish); // modification
-                              } else {
-                                handleAddDish(); // ajout
-                              }
-                            }}
-                          >
-                            {currentDish ? "Modifier" : "Ajouter"}
-                          </Button>
-
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                  
                 </div>
               </CardHeader>
 
@@ -770,7 +808,6 @@ const handleDeleteClient = async (id: number) => {
                         <div className="flex items-center space-x-4">
                           <span className="font-medium text-lg">{dish.prix} FCFA</span>
                           <div className="flex space-x-2">
-                            {/* ✅ On utilise dish, pas plat */}
                             <Button
                               size="sm"
                               variant="outline"
@@ -812,7 +849,10 @@ const handleDeleteClient = async (id: number) => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {orders.map((order) => (
+                  {orders
+                  .slice() 
+                  .sort((a, b) => new Date(b.date_commande).getTime() - new Date(a.date_commande).getTime())
+                  .map((order) => (
                     <Card key={order.id} className="p-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-4">
@@ -823,7 +863,7 @@ const handleDeleteClient = async (id: number) => {
                           <div>
                             <h4 className="font-semibold">{order.id} - {order.table}</h4>
                             <p className="text-sm text-muted-foreground">
-                              {getTimeElapsed(order.date_commande) > 0
+                              {getTimeElapsed(order.date_commande) >= 0
                                 ? `${getTimeElapsed(order.date_commande)} min`
                                 : 'Prêt'}
                             </p>
@@ -894,29 +934,25 @@ const handleDeleteClient = async (id: number) => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {[
-                    { orderId: 'ORD-001', amount: '24.50€', method: 'mobile', status: 'paid', table: 'Table 5' },
-                    { orderId: 'ORD-002', amount: '31.00€', method: 'cash', status: 'pending', table: 'Table 12' },
-                    { orderId: 'ORD-003', amount: '19.50€', method: 'mobile', status: 'paid', table: 'Table 3' },
-                    { orderId: 'ORD-004', amount: '28.00€', method: 'cash', status: 'pending', table: 'Table 8' }
-                  ].map((payment, index) => (
-                    <Card key={index} className="p-4">
+                  {payments.map((payment) => (
+                    <Card key={payment.id} className="p-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-4">
                           <div>
-                            <h4 className="font-semibold">{payment.orderId} - {payment.table}</h4>
+                            {/* commande au lieu de order, et pas de table (sauf si tu ajoutes table côté backend) */}
+                            <h4 className="font-semibold">Commande #{payment.commande.id}</h4>
                             <p className="text-sm text-muted-foreground">
-                              {payment.method === 'mobile' ? 'Paiement mobile' : 'Paiement espèces'}
+                              {payment.mode === 'en_ligne' ? 'Paiement en ligne' : 'Paiement en espèces'}
                             </p>
                           </div>
-                          <Badge variant={payment.status === 'paid' ? "default" : "secondary"}>
-                            {payment.status === 'paid' ? 'Payé' : 'En attente'}
+                          <Badge variant={payment.status === 'success' ? "default" : "secondary"}>
+                            {payment.status === 'success' ? 'Payé' : 'En attente'}
                           </Badge>
                         </div>
                         <div className="flex items-center space-x-4">
-                          <span className="font-medium text-lg">{payment.amount}</span>
+                          <span className="font-medium text-lg">{payment.montant} FCFA</span>
                           {payment.status === 'pending' && (
-                            <Button size="sm">
+                            <Button size="sm" onClick={() => handleValidatePayment(payment.id)}>
                               Valider
                             </Button>
                           )}
@@ -924,6 +960,7 @@ const handleDeleteClient = async (id: number) => {
                       </div>
                     </Card>
                   ))}
+
                 </div>
               </CardContent>
             </Card>
@@ -941,57 +978,43 @@ const handleDeleteClient = async (id: number) => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {[
-                    { 
-                      customer: 'Marie D.', 
-                      rating: 5, 
-                      comment: 'Excellent service et nourriture délicieuse !', 
-                      order: 'ORD-001',
-                      responded: false
-                    },
-                    { 
-                      customer: 'Jean P.', 
-                      rating: 4, 
-                      comment: 'Très bon mais un peu long à servir.', 
-                      order: 'ORD-002',
-                      responded: true
-                    },
-                    { 
-                      customer: 'Sophie L.', 
-                      rating: 5, 
-                      comment: 'Parfait comme toujours !', 
-                      order: 'ORD-003',
-                      responded: false
-                    }
-                  ].map((review, index) => (
-                    <Card key={index} className="p-4">
+                  {reviews.map((review) => (
+                    <Card key={review.id} className="p-4">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center space-x-2 mb-2">
-                            <h4 className="font-semibold">{review.customer}</h4>
+                            {/* Pas de champ 'customer', on peut afficher review.client ou "Client #id" */}
+                            <h4 className="font-semibold">Client #{review.client}</h4>
+
+                            {/* Affichage des étoiles en fonction de review.note */}
                             <div className="flex">
                               {[...Array(5)].map((_, i) => (
-                                <Star 
-                                  key={i} 
-                                  className={`w-4 h-4 ${i < review.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} 
+                                <Star
+                                  key={i}
+                                  className={`w-4 h-4 ${i < review.note ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
                                 />
                               ))}
                             </div>
-                            <Badge variant="outline">{review.order}</Badge>
+
+                            {/* Pas 'order', donc on affiche l'id de la commande liée */}
+                            <Badge variant="outline">Commande #{review.commande.id}</Badge>
                           </div>
-                          <p className="text-sm text-muted-foreground mb-2">{review.comment}</p>
-                          {review.responded && (
-                            <p className="text-sm text-blue-600 bg-blue-50 p-2 rounded">
-                              Réponse: Merci pour votre retour ! Nous sommes ravis que vous ayez apprécié.
-                            </p>
-                          )}
+
+                          {/* description au lieu de comment */}
+                          <p className="text-sm text-muted-foreground mb-2">{review.description}</p>
+
+                          {/* Ici pas de champ response (sauf si tu l’ajoutes dans ton modèle plus tard) */}
                         </div>
+
                         <div className="flex space-x-2">
-                          {!review.responded && (
-                            <Button size="sm">
-                              Répondre
-                            </Button>
-                          )}
+                          {/* Si tu ajoutes une API pour répondre, tu peux garder ce bouton */}
+                          <Button
+                            size="sm"
+                            onClick={() => handleRespondReview(review.id, "Merci pour votre retour !")}
+                          >
+                            Répondre
+                          </Button>
+
                           <Button size="sm" variant="outline">
                             <Eye className="w-4 h-4" />
                           </Button>
@@ -1081,8 +1104,8 @@ const handleDeleteClient = async (id: number) => {
                   <TrendingUp className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">12,847€</div>
-                  <p className="text-xs text-muted-foreground">+18% vs mois dernier</p>
+                  <div className="text-2xl font-bold">{stats?.revenue?.toLocaleString()} FCFA</div>
+                  {/* <p className="text-xs text-muted-foreground">+18% vs mois dernier</p> */}
                 </CardContent>
               </Card>
 
@@ -1092,8 +1115,8 @@ const handleDeleteClient = async (id: number) => {
                   <ShoppingCart className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">1,247</div>
-                  <p className="text-xs text-muted-foreground">+12% vs mois dernier</p>
+                  <div className="text-2xl font-bold">{stats?.total_commandes}</div>
+                  {/* <p className="text-xs text-muted-foreground">+12% vs mois dernier</p> */}
                 </CardContent>
               </Card>
 
@@ -1103,8 +1126,12 @@ const handleDeleteClient = async (id: number) => {
                   <DollarSign className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">18.50€</div>
-                  <p className="text-xs text-muted-foreground">+5% vs mois dernier</p>
+                  <div className="text-2xl font-bold">
+                    {stats.total_commandes > 0 
+                      ? (stats.revenue / stats.total_commandes).toFixed(2) 
+                      : 0} FCFA
+                  </div>
+                  {/* <p className="text-xs text-muted-foreground">+5% vs mois dernier</p> */}
                 </CardContent>
               </Card>
 
@@ -1114,8 +1141,10 @@ const handleDeleteClient = async (id: number) => {
                   <Star className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">4.8/5</div>
-                  <p className="text-xs text-muted-foreground">+0.2 vs mois dernier</p>
+                  <div className="text-2xl font-bold">
+                    {stats.avgWaitTime} min 
+                  </div>
+                  {/* <p className="text-xs text-muted-foreground">+0.2 vs mois dernier</p> */}
                 </CardContent>
               </Card>
             </div>
@@ -1144,34 +1173,21 @@ const handleDeleteClient = async (id: number) => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <span>Burger Royal</span>
-                      <div className="flex items-center space-x-2">
-                        <Progress value={85} className="w-20 h-2" />
-                        <Badge>23</Badge>
+                    {stats?.plats_populaires?.map((plat, index) => (
+                      <div
+                        key={index}
+                        className="flex justify-between items-center"
+                      >
+                        <span>{plat.nom_plat}</span>
+                        <div className="flex items-center space-x-2">
+                          <Progress
+                            value={(plat.nb_ventes / stats.plats_populaires[0].nb_ventes) * 100}
+                            className="w-20 h-2"
+                          />
+                          <Badge>{plat.nb_ventes}</Badge>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span>Pizza Margherita</span>
-                      <div className="flex items-center space-x-2">
-                        <Progress value={68} className="w-20 h-2" />
-                        <Badge>18</Badge>
-                      </div>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span>Pâtes Carbonara</span>
-                      <div className="flex items-center space-x-2">
-                        <Progress value={55} className="w-20 h-2" />
-                        <Badge>15</Badge>
-                      </div>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span>Salade César</span>
-                      <div className="flex items-center space-x-2">
-                        <Progress value={45} className="w-20 h-2" />
-                        <Badge>12</Badge>
-                      </div>
-                    </div>
+                    ))}
                   </div>
                 </CardContent>
               </Card>
@@ -1232,6 +1248,109 @@ const handleDeleteClient = async (id: number) => {
 
         </Tabs>
       </div>
+      {/* Modal/Formulaire */}
+        {showDishModal && (
+          <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+              <div className="bg-white p-6 rounded-lg w-96">
+                <h2 className="text-xl font-semibold mb-4">
+                  {currentDish ? "Modifier le plat" : "Ajouter un nouveau plat"}
+                </h2>
+
+                <input
+                  type="text"
+                  placeholder="Nom du plat"
+                  className="w-full mb-2 p-2 border rounded"
+                  value={currentDish?.nom_plat || newDish.nom_plat}
+                  onChange={(e) =>
+                    currentDish
+                    ? setCurrentDish({ ...currentDish, nom_plat: e.target.value })
+                    : setNewDish({ ...newDish, nom_plat: e.target.value })
+                  }
+                />
+                <input
+                  type="number"
+                  placeholder="Prix"
+                  className="w-full mb-2 p-2 border rounded"
+                  value={currentDish?.prix || newDish.prix}
+                  onChange={(e) =>
+                    currentDish
+                    ? setCurrentDish({ ...currentDish, prix: e.target.value })
+                    : setNewDish({ ...newDish, prix: e.target.value })
+                  }
+                />
+                        <select
+                          className="w-full mb-2 p-2 border rounded"
+                          value={currentDish ? currentDish.categorie : newDish.categorie}
+                          onChange={(e) => {
+                            currentDish
+                              ? setCurrentDish({ ...currentDish, categorie: e.target.value })
+                              : setNewDish({ ...newDish, categorie: e.target.value });
+                          }}
+                        >
+                          <option value="">-- Sélectionner une catégorie --</option>
+                          <option value="entree">Entrée</option>
+                          <option value="plat_principal">Plat principal</option>
+                          <option value="dessert">Dessert</option>
+                          <option value="boisson">Boisson</option>
+                          <option value="accompagnement">Accompagnement</option>
+                          <option value="autre">Autre</option>
+                        </select>
+
+                        <textarea
+                          placeholder="Description"
+                          className="w-full mb-2 p-2 border rounded"
+                          value={currentDish?.description || newDish.description}
+                          onChange={(e) =>
+                            currentDish
+                              ? setCurrentDish({ ...currentDish, description: e.target.value })
+                              : setNewDish({ ...newDish, description: e.target.value })
+                          }
+                        />
+                        <textarea
+                          placeholder="Ingredients"
+                          className="w-full mb-4 p-2 border rounded"
+                          value={currentDish?.ingredients || newDish.ingredients}
+                          onChange={(e) =>
+                            currentDish
+                              ? setCurrentDish({ ...currentDish, ingredients: e.target.value })
+                              : setNewDish({ ...newDish, ingredients: e.target.value })
+                          }
+                        />
+
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="w-full mb-4"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              currentDish
+                                ? setCurrentDish({ ...currentDish, image: file })
+                                : setNewDish({ ...newDish, image: file });
+                            }
+                          }}
+                        />
+
+                        <div className="flex justify-end space-x-2">
+                          <Button variant="outline" onClick={() => setShowDishModal(false)}>
+                            Annuler
+                          </Button>
+                          <Button
+                            onClick={() => {
+                              if (currentDish) {
+                                handleEditDish(currentDish.id, currentDish); // modification
+                              } else {
+                                handleAddDish(); // ajout
+                              }
+                            }}
+                          >
+                            {currentDish ? "Modifier" : "Ajouter"}
+                          </Button>
+
+                        </div>
+                      </div>
+                    </div>
+                  )}
     </div>
   );
 };

@@ -62,7 +62,10 @@ export interface User {
   firstname: string;
   lastname: string;
   phone: string;
-  loyaltyPoints: number;
+  loyaltyPoints: {
+    earned_points: number;
+    total_points: number;
+  };
   orderHistory: Order[];
   preferences: string[];
   date_joined: string;

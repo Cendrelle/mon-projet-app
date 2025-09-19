@@ -21,39 +21,7 @@ const OrderHistory = ({ user, onBack, currentOrder, orderHistory = [], onTrackOr
     
   // Données simulées d'historique de commandes
   const mockOrders: Order[] = [
-    {
-      id: 'order-1',
-      tableNumber: 'Table 12',
-      items: [],
-      status: 'delivered',
-      total: 28.50,
-      timestamp: new Date('2024-01-15T19:30:00'),
-      orderType: 'dine-in',
-      paymentMethod: 'mobile',
-      rating: { score: 5, comment: 'Excellent repas !' }
-    },
-    {
-      id: 'order-2',
-      tableNumber: 'Table 8',
-      items: [],
-      status: 'delivered',
-      total: 15.00,
-      timestamp: new Date('2024-01-10T12:45:00'),
-      orderType: 'takeaway',
-      paymentMethod: 'cash',
-      rating: { score: 4 }
-    },
-    {
-      id: 'order-3',
-      tableNumber: 'Table 12',
-      items: [],
-      status: 'delivered',
-      total: 42.80,
-      timestamp: new Date('2024-01-05T20:15:00'),
-      orderType: 'dine-in',
-      paymentMethod: 'mobile',
-      rating: { score: 5, comment: 'Service impeccable' }
-    }
+    
   ];
 
   const getStatusIcon = (status: string) => {
