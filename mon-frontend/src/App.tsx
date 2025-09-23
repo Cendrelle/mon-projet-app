@@ -9,6 +9,7 @@ import KitchenInterface from "./pages/KitchenInterface";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
+import OrderTracking from './components/OrderTracking';
 
 const queryClient = new QueryClient();
 
@@ -35,6 +36,12 @@ const App = () => (
               <ProtectedRoute allowedRoles={['kitchen', 'admin']}>
                 <KitchenInterface />
               </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/suivi/:commande_uuid" 
+            element={
+              <OrderTracking order={null as any} onBackToMenu={() => {}} />
             } 
           />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

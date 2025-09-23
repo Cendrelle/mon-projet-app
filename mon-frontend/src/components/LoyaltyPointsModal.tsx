@@ -4,15 +4,38 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Gift, X, Star, Trophy } from 'lucide-react';
 import { User } from '@/types/restaurant';
+import { useNavigate } from 'react-router-dom';
 
 interface LoyaltyPointsModalProps {
   user: User;
   onClose: () => void;
+  onBack: () => void;
 }
 
-const LoyaltyPointsModal = ({ user, onClose }: LoyaltyPointsModalProps) => {
+const LoyaltyPointsModal = ({ user, onClose, onBack }: LoyaltyPointsModalProps) => {
   const nextRewardThreshold = 250;
-  const pointsNeeded = nextRewardThreshold - user.loyaltyPoints;
+  const pointsNeeded = nextRewardThreshold - (user.loyaltyPoints?.earned_points ?? 0);
+  const navigate = useNavigate();
+
+  if (!user?.id) {
+      return (
+        <div className="min-h-screen flex items-center justify-center">
+          <Card className="w-full max-w-md">
+            <CardContent className="pt-6">
+              <p className="text-center text-muted-foreground">
+                Vous devez être connecté pour avoir des points de fidélité.
+              </p>
+              <Button 
+                onClick={onBack} 
+                className="w-full mt-4"
+              >
+                Retour à l'accueil
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      );
+    }
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -35,7 +58,7 @@ const LoyaltyPointsModal = ({ user, onClose }: LoyaltyPointsModalProps) => {
               <Trophy className="w-10 h-10 text-amber-600" />
             </div>
             <h3 className="text-2xl font-bold text-gray-900 mb-2">
-              {user.loyaltyPoints} points
+              {user.loyaltyPoints.total_points} points
             </h3>
             <p className="text-gray-600">Vos points de fidélité actuels</p>
           </div>

@@ -153,51 +153,6 @@ const CartSidebar = ({
                       Autres remarques
                     </Button>
                   )}
-                  
-                  {/* <Button 
-                    onClick={async () => {
-                      if (items.length === 0) return;
-                      console.log({ tableNumber, items });
-
-                      setIsSubmitting(true);
-                      try {
-                        const tableNumInt = parseInt(tableNumber.replace(/\D/g, ''), 10);
-                        const res = await authFetch('http://localhost:8000/api/valider-commande/', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ 
-                            type_service: 'sur_place', 
-                            table_number: tableNumInt,
-                            plats: items.map((item: CartItem) => ({
-                              plat: item.menuItem.id,       
-                              quantite: item.quantity,
-                              prix: item.menuItem.price   
-                            }))
-                          }), 
-                        });
-
-                        const data = await res.json();
-
-                        if (!res.ok) {
-                          throw new Error(data.error || "Erreur lors de la validation de la commande");
-                        }
-
-                        // alert(`Commande validée ! Total: ${data.total} FCFA`);
-                        // onClearCart(); // Vider le panier côté frontend
-                        // setIsOpen(false);
-
-                      } catch (err: any) {
-                        alert(err.message);
-                      } finally {
-                        setIsSubmitting(false);
-                      }
-                    }}
-                    className={`w-full bg-restaurant-500 hover:bg-restaurant-600 text-white ${isMobile ? 'min-h-14 text-lg' : ''}`}
-                    size="lg"
-                    disabled={items.length === 0 || isSubmitting}
-                  >
-                    {isSubmitting ? 'Validation...' : 'Commander'}
-                  </Button> */}
                   <Button onClick={onCheckout}>
                     Commander
                   </Button>

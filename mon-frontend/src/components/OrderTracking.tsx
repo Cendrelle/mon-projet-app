@@ -6,60 +6,94 @@ import { CheckCircle, Clock, ChefHat, Bell, Star, Gift } from 'lucide-react';
 import { Order } from '@/types/restaurant';
 import OrderRating from './OrderRating';
 import { useToast } from '@/hooks/use-toast';
+import { useParams } from 'react-router-dom';
 
 interface OrderTrackingProps {
   order: Order;
   onBackToMenu: () => void;
+  commande_uuid?: string;
 }
 
-const OrderTracking = ({ order, onBackToMenu }: OrderTrackingProps) => {
+const OrderTracking = ({ order, onBackToMenu, commande_uuid: propUuid }: OrderTrackingProps) => {
   const [currentStatus, setCurrentStatus] = useState(order.status);
   const [estimatedTime, setEstimatedTime] = useState(25);
   const [showRating, setShowRating] = useState(false);
   const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [orderState, setOrderState] = useState<Order>(order);
+
+  const { commande_uuid: paramUuid } = useParams<{ commande_uuid: string }>();
+  const commande_uuid = propUuid || paramUuid;
+
+  // Mapper backend -> frontend
+  const mapBackendToFrontendStatus = (backendStatut: string): Order['status'] => {
+    switch (backendStatut) {
+      case 'en_attente':
+        return 'pending';
+      case 'confirmee':
+        return 'confirmed';
+      case 'en_cours':
+        return 'preparing';
+      case 'pretee':
+        return 'ready';
+      case 'servie':
+        return 'delivered';
+      default:
+        return 'pending'; // fallback
+    }
+  };
+
 
   useEffect(() => {
-    const statusProgression = ['confirmed', 'preparing', 'ready', 'delivered'];
-    let currentIndex = statusProgression.indexOf(currentStatus);
-    
-    const timer = setInterval(() => {
-      if (currentIndex < statusProgression.length - 1) {
-        currentIndex++;
-        const newStatus = statusProgression[currentIndex] as any;
-        setCurrentStatus(newStatus);
-        setEstimatedTime(prev => Math.max(0, prev - 7));
-        
-        // Notifications en temps réel
-        if (newStatus === 'preparing') {
-          toast({
-            title: "🍳 Préparation commencée",
-            description: "Votre commande est en cours de préparation !",
-          });
-        } else if (newStatus === 'ready') {
-          toast({
-            title: "🔔 Commande prête !",
-            description: "Votre repas vous attend !",
-          });
-          
-          // Simulation de vibration pour mobile
-          if (navigator.vibrate) {
-            navigator.vibrate([200, 100, 200]);
-          }
-        } else if (newStatus === 'delivered') {
-          toast({
-            title: "✅ Bon appétit !",
-            description: "Votre commande a été servie.",
-          });
+    if (!commande_uuid) {
+      console.log("Aucun commande_uuid, on ne lance pas la récupération");
+      return;
+    }
+
+    const fetchOrderStatus = async () => {
+      try {
+        const res = await fetch(`http://127.0.0.1:8000/api/suivi/${commande_uuid}/`);
+
+        if (!res.ok) {
+          throw new Error(`Erreur serveur ${res.status}`);
         }
-      } else {
-        clearInterval(timer);
-        setTimeout(() => setShowRating(true), 2000);
+        const data = await res.json();
+
+        const frontendStatus = mapBackendToFrontendStatus(data.statut);
+
+        console.log("Statut backend:", data.statut, "→ Statut frontend:", frontendStatus);
+
+        setOrderState(prev => ({ ...prev, status: frontendStatus })); 
+        setCurrentStatus(frontendStatus);
+
+        if (frontendStatus === 'delivered' && timerRef.current) {
+          clearInterval(timerRef.current);
+          timerRef.current = null;
+          console.log("Commande servie, arrêt du fetch automatique");
+        }
+
+      } catch (err) {
+        console.error("Erreur récupération statut:", err);
+        toast({ title: "Erreur", description: "Impossible de récupérer le statut de la commande" });
+      } finally {
+        setLoading(false);
       }
-    }, 8000);
+    };
 
-    return () => clearInterval(timer);
-  }, [toast]);
+    fetchOrderStatus();
+    const timerRef = { current: setInterval(fetchOrderStatus, 10000) };
 
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [commande_uuid]);
+
+  /* if (loading) return <div>Chargement de la commande...</div>;
+  if (!order) return <div>Aucune commande trouvée.</div>;
+  if (showRating) return <OrderRating order={order} onComplete={onBackToMenu} />;
+
+ */
+ 
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'confirmed':
@@ -91,6 +125,7 @@ const OrderTracking = ({ order, onBackToMenu }: OrderTrackingProps) => {
   };
 
   const statusSteps = [
+    { key: 'pending', label: 'En attente' },
     { key: 'confirmed', label: 'Confirmée' },
     { key: 'preparing', label: 'En préparation' },
     { key: 'ready', label: 'Prête' },
@@ -126,15 +161,17 @@ const OrderTracking = ({ order, onBackToMenu }: OrderTrackingProps) => {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
-                  {currentStatus === 'confirmed' && <CheckCircle className="w-5 h-5 text-green-500" />}
-                  {currentStatus === 'preparing' && <ChefHat className="w-5 h-5 text-restaurant-500" />}
-                  {currentStatus === 'ready' && <Bell className="w-5 h-5 text-blue-500 animate-pulse" />}
-                  {currentStatus === 'delivered' && <CheckCircle className="w-5 h-5 text-green-500" />}
+                  {orderState?.status === 'pending' && <Clock className="w-5 h-5 text-gray-400" />}
+                  {orderState?.status === 'confirmed' && <CheckCircle className="w-5 h-5 text-green-500" />}
+                  {orderState?.status === 'preparing' && <ChefHat className="w-5 h-5 text-restaurant-500" />}
+                  {orderState?.status === 'ready' && <Bell className="w-5 h-5 text-blue-500 animate-pulse" />}
+                  {orderState?.status === 'delivered' && <CheckCircle className="w-5 h-5 text-green-500" />}
                   <span className="font-medium text-lg">
-                    {currentStatus === 'confirmed' && 'Commande confirmée'}
-                    {currentStatus === 'preparing' && 'En préparation'}
-                    {currentStatus === 'ready' && 'Prête à servir !'}
-                    {currentStatus === 'delivered' && 'Servie'}
+                    {orderState?.status === 'pending' && 'Commande en attente'}
+                    {orderState?.status === 'confirmed' && 'Commande confirmée'}
+                    {orderState?.status === 'preparing' && 'En préparation'}
+                    {orderState?.status === 'ready' && 'Prête à servir !'}
+                    {orderState?.status === 'delivered' && 'Servie'}
                   </span>
                 </div>
                 {currentStatus !== 'delivered' && (

@@ -26,6 +26,8 @@ import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { useOrders } from "@/hooks/useOrders";
 import NotesModal from '@/components/NotesModal';
+import { v4 as uuidv4 } from 'uuid';
+
 
 type AppState = 'scanner' | 'login' | 'menu' | 'orderType' | 'payment' | 'tracking' | 'history';
 
@@ -210,7 +212,7 @@ const Index = () => {
   const handleTrackOrder = (order) => {
     setCurrentOrder(order);
     setShowOrderTracking(true); 
-    
+    navigate(`/suivi/${order.commande_uuid}`);
   };
 
   const handlePaymentSelect = async (paymentMethod: 'cash' | 'mobile') => {
@@ -226,7 +228,7 @@ const Index = () => {
           plats: items.map(item => ({
             plat: item.menuItem.id,
             quantite: item.quantity,
-            prix: item.menuItem.price
+            prix: item.menuItem.price, 
           }))
         })
       });
@@ -236,7 +238,10 @@ const Index = () => {
         throw new Error(data.error || "Erreur lors de la validation de la commande");
       }
 
-      const data = await res.json(); 
+      // Ici tu vois la réponse complète
+      const data = await res.json();
+      console.log("Réponse backend:", data);
+
       const order: Order = {
         id: `order-${Date.now()}`,
         tableNumber,
@@ -257,7 +262,8 @@ const Index = () => {
           name: user.name,
           email: user.email,
           loyaltyPoints: user.loyaltyPoints = data.total_points
-        } : undefined
+        } : undefined,
+        commande_uuid: data.commande_uuid,
       };
 
       addOrder(order);
@@ -266,12 +272,14 @@ const Index = () => {
       setAppState('tracking');
 
       // Simulation de points de fidélité
-      if (user) {
+      if (user.id) {
         const pointsEarned = Math.floor(getTotal());
+        const earned = user.loyaltyPoints?.earned_points ?? 0;
+        const total = user.loyaltyPoints?.total_points ?? 0;
         setUser({ ...user, loyaltyPoints: {
           ...user.loyaltyPoints,
-          earned_points: user.loyaltyPoints.earned_points + pointsEarned,
-          total_points: user.loyaltyPoints.total_points + pointsEarned, // si tu veux aussi incrémenter
+          earned_points: earned + pointsEarned,
+          total_points: total + pointsEarned, // si tu veux aussi incrémenter
         }});
         toast({
           title: "Commande confirmée !",
@@ -292,6 +300,7 @@ const Index = () => {
         // status: "error",
       });
     }
+    
   };
 
 
@@ -420,20 +429,24 @@ const Index = () => {
   }
 
   if (appState === 'tracking' && currentOrder) {
-    return <OrderTracking order={currentOrder} onBackToMenu={handleBackToMenu} />;
+    return <OrderTracking 
+      order={currentOrder} 
+      onBackToMenu={handleBackToMenu}  
+      commande_uuid={currentOrder.commande_uuid}    
+    />;
   }
 
   if (appState === 'history') {
     return <OrderHistory
-    user={user}
-    onBack={handleBackFromHistory}
-    currentOrder={currentOrder}
-    orderHistory={orderHistory}  
-    onTrackOrder={(order) => {
-      setCurrentOrder(order);
-      setAppState('tracking');
-    }}
-  />
+      user={user}
+      onBack={handleBackFromHistory}
+      currentOrder={currentOrder}
+      orderHistory={orderHistory}  
+      onTrackOrder={(order) => {
+        setCurrentOrder(order);
+        setAppState('tracking');
+      }}
+    />
   }
 
   const restaurantInfo = {
@@ -448,6 +461,7 @@ const Index = () => {
         <LoyaltyPointsModal
           user={{ ...user, loyaltyPoints }} 
           onClose={handleCloseModal}
+          onBack={() => navigate('/')}
         />
 
       )}

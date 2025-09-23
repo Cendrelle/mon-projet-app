@@ -36,7 +36,7 @@ const Profile = () => {
   }, [user]);
 
   const handleUpdateProfile = async () => {
-    if (!user) return;
+    if (!user?.id) return;
 
     setLoading(true);
     try {
@@ -96,7 +96,7 @@ const Profile = () => {
     }
   };
 
-  if (!user) {
+  if (!user?.id) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Card className="w-full max-w-md">
@@ -116,7 +116,8 @@ const Profile = () => {
     );
   }
 
-  return (
+ if (user.id){
+   return (
     <div className="min-h-screen bg-background">
       <div className="container max-w-4xl mx-auto py-8 px-4">
         <div className="flex items-center gap-4 mb-8">
@@ -281,6 +282,7 @@ const Profile = () => {
       </div>
     </div>
   );
+ };
 };
 
 export default Profile;

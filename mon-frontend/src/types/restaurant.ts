@@ -45,6 +45,7 @@ export interface Order {
     score: number;
     comment?: string;
   };
+  commande_uuid: string; 
 }
 
 export interface Restaurant {
