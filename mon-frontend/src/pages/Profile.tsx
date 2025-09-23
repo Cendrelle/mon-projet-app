@@ -96,7 +96,7 @@ const Profile = () => {
     }
   };
 
-  if (!user?.id) {
+  if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Card className="w-full max-w-md">
@@ -116,7 +116,7 @@ const Profile = () => {
     );
   }
 
- if (user.id){
+ if (user){
    return (
     <div className="min-h-screen bg-background">
       <div className="container max-w-4xl mx-auto py-8 px-4">
@@ -124,7 +124,7 @@ const Profile = () => {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => navigate('/')}
+            onClick={() => navigate('-1/')}
             className="gap-2"
           >
             <ArrowLeft className="h-4 w-4" />

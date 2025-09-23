@@ -160,12 +160,16 @@ const Index = () => {
     setAppState('menu');
     toast({
       title: "Connexion réussie !",
-      description: `Bienvenue ${userData.name}. Vous avez ${userData.loyaltyPoints} points de fidélité.`,
+      description: `Bienvenue ${userData.lastname}. Vous avez ${userData.loyaltyPoints} points de fidélité.`,
     });
   };
 
   const handleSkipLogin = () => {
     console.log('handleSkipLogin appelé');
+    localStorage.removeItem("refresh_token");
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("user");
+
     setShowLoginPrompt(false);
     setAppState('menu');
     toast({
@@ -461,7 +465,7 @@ const Index = () => {
         <LoyaltyPointsModal
           user={{ ...user, loyaltyPoints }} 
           onClose={handleCloseModal}
-          onBack={() => navigate('/')}
+          onBack={handleBackToMenu}
         />
 
       )}

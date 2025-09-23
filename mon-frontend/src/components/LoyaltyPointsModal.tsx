@@ -29,7 +29,7 @@ const LoyaltyPointsModal = ({ user, onClose, onBack }: LoyaltyPointsModalProps) 
                 onClick={onBack} 
                 className="w-full mt-4"
               >
-                Retour à l'accueil
+                Retour au menu
               </Button>
             </CardContent>
           </Card>

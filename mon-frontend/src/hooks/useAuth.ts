@@ -48,7 +48,8 @@ export const useAuth = () => {
     return profile; 
   };
 
-  const register = async (firstName: string,
+  const register = async (
+    firstName: string,
     lastName: string,
     email: string,
     password: string,
@@ -56,22 +57,30 @@ export const useAuth = () => {
     phone?: string
   ) => {
     try {
+      const userData = {
+        firstname: firstName,
+        lastname: lastName,
+        email,
+        password,
+        password_confirm: passwordConfirm,
+        phone,
+      };
+      console.log("Données envoyées:", userData);
       const res = await fetch('http://localhost:8000/api/signup/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          firstname: firstName,
-          lastname: lastName,
-          email,
-          password,
-          password_confirm: passwordConfirm, // <- ici
-          phone,
-        }),
+        body: JSON.stringify(userData),
       });
 
       const data = await res.json();
 
-      if (!res.ok) throw new Error(data.detail || 'Inscription échouée');
+      if (!res.ok) {
+        const messages = Object.entries(data)
+          .map(([key, val]) => `${key}: ${val}`)
+          .join("\n");
+        throw new Error(messages || "Inscription échouée");
+      }
+
 
       // Récupérer le token après inscription si le backend le renvoie
       if (data.access) {
@@ -80,7 +89,7 @@ export const useAuth = () => {
         await fetchProfile(data.access); // récupère le profil complet
       }
 
-      return user;
+      return data;
     } catch (err) {
       console.error('Erreur lors de l’inscription:', err);
       throw err;

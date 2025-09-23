@@ -24,9 +24,14 @@ const LoginPrompt = ({ onLogin, onSkip, onClose }: LoginPromptProps) => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isRegistering, setIsRegistering] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
 
   const handleSubmit = async () => {
     try {
+      setErrorMessage(null); // réinitialise à chaque soumission
+      setSuccessMessage(null);
       if (isRegistering) {
        const newUser = await register(
         firstName,
@@ -74,6 +79,13 @@ const LoginPrompt = ({ onLogin, onSkip, onClose }: LoginPromptProps) => {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-3">
+            {errorMessage && (
+              <div className="text-red-600 mb-2">{errorMessage}</div>
+            )}
+
+            {successMessage && (
+              <div className="text-green-600 mb-2">{successMessage}</div>
+            )}
             {isRegistering && (
               <>
                 <div className="grid grid-cols-2 gap-3">
