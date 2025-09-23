@@ -7,6 +7,10 @@ import { Order } from '@/types/restaurant';
 import OrderRating from './OrderRating';
 import { useToast } from '@/hooks/use-toast';
 import { useParams } from 'react-router-dom';
+import { toast } from "@/components/ui/use-toast";
+import { useAuth } from '@/hooks/useAuth';
+import RatingNotification from '@/components/RatingNotification';
+import RatingModal from '@/components/RatingModal';
 
 interface OrderTrackingProps {
   order: Order;
@@ -24,6 +28,15 @@ const OrderTracking = ({ order, onBackToMenu, commande_uuid: propUuid }: OrderTr
 
   const { commande_uuid: paramUuid } = useParams<{ commande_uuid: string }>();
   const commande_uuid = propUuid || paramUuid;
+
+  const { authFetch, user } = useAuth();
+
+  const [orderToRate, setOrderToRate] = useState<any>(null);
+  const [showRatingNotification, setShowRatingNotification] = useState(false);
+  const [pendingRating, setPendingRating] = useState<number | null>(null);
+  const [showNotesModal, setShowNotesModal] = useState(false);
+  const [showRatingModal, setShowRatingModal] = useState(false);
+
 
   // Mapper backend -> frontend
   const mapBackendToFrontendStatus = (backendStatut: string): Order['status'] => {
@@ -58,12 +71,13 @@ const OrderTracking = ({ order, onBackToMenu, commande_uuid: propUuid }: OrderTr
           throw new Error(`Erreur serveur ${res.status}`);
         }
         const data = await res.json();
+        console.log(data)
 
         const frontendStatus = mapBackendToFrontendStatus(data.statut);
 
         console.log("Statut backend:", data.statut, "→ Statut frontend:", frontendStatus);
 
-        setOrderState(prev => ({ ...prev, status: frontendStatus })); 
+        setOrderState(prev => ({ ...prev, status: frontendStatus, id: data.id })); 
         setCurrentStatus(frontendStatus);
 
         if (frontendStatus === 'delivered' && timerRef.current) {
@@ -88,11 +102,61 @@ const OrderTracking = ({ order, onBackToMenu, commande_uuid: propUuid }: OrderTr
     };
   }, [commande_uuid]);
 
-  /* if (loading) return <div>Chargement de la commande...</div>;
-  if (!order) return <div>Aucune commande trouvée.</div>;
-  if (showRating) return <OrderRating order={order} onComplete={onBackToMenu} />;
+  useEffect(() => {
+    let ratingTimer: NodeJS.Timeout;
 
- */
+    if (orderState?.status === "delivered") {
+      ratingTimer = setTimeout(() => {
+        setOrderToRate(orderState);
+        setShowRatingNotification(true);
+      }, 10000); // 3 minutes (ici 180000ms)
+    }
+
+    return () => {
+      if (ratingTimer) clearTimeout(ratingTimer);
+    };
+  }, [orderState?.status]);
+
+  // Envoi de la note + commentaire
+  const submitRating = async (rating: number, notes: string) => {
+    if (!orderToRate) return;
+    console.log("Données envoyées au backend:", {
+      /* client: user?.id, */
+      commande: orderToRate.id,
+      note: rating,
+      description: notes
+    });
+
+
+    try {
+      const response = await authFetch("http://localhost:8000/api/avis/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          //client: user?.id,
+          commande: orderToRate.id,
+          note: rating,
+          description: notes,
+        }),
+      });
+
+      if (!response.ok) throw new Error("Erreur lors de l’envoi de la note");
+
+      toast({
+        title: "Merci pour votre avis !",
+        description: "Votre note a été enregistrée avec succès.",
+      });
+
+      setShowRatingNotification(false);
+      setOrderToRate(null);
+    } catch (error: any) {
+      toast({
+        title: "Erreur",
+        description: error.message || "Impossible d’envoyer votre note.",
+        variant: "destructive",
+      });
+    }
+  };
  
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -285,6 +349,34 @@ const OrderTracking = ({ order, onBackToMenu, commande_uuid: propUuid }: OrderTr
           </Button>
         </div>
       </div>
+      {/* Rating Notification */}
+      {showRatingNotification && orderToRate && (
+        <RatingNotification
+          order={orderToRate}
+          onRate={(rating: number) => {
+            setPendingRating(rating);  // stocke la note
+            setShowRatingModal(true);   // ouvre le modal pour le commentaire
+            setShowRatingNotification(false); // masque notification mais ne supprime pas orderToRate
+          }}
+          onDismiss={() => {
+            setShowRatingNotification(false);
+            setOrderToRate(null); // supprimer seulement si l'utilisateur ignore la note
+          }}
+        />
+      )}
+      {showRatingModal && orderToRate && (
+        <RatingModal
+          onConfirm={(rating, notes) => {
+            submitRating(rating, notes);
+            setShowRatingModal(false);
+            setOrderToRate(null);
+          }}
+          onCancel={() => {
+            setShowRatingModal(false);
+            setOrderToRate(null);
+          }}
+        />
+      )}
     </div>
   );
 };

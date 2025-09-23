@@ -26,13 +26,13 @@ const RatingNotification = ({ order, onRate, onDismiss }: RatingNotificationProp
   };
 
   return (
-    <div className="fixed top-4 right-4 z-50 max-w-sm">
+    <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
       <Card className="bg-white shadow-lg border-l-4 border-l-restaurant-500 animate-in slide-in-from-right-4">
         <CardContent className="p-4">
           <div className="flex justify-between items-start mb-3">
             <div>
               <h4 className="font-semibold text-gray-900">Comment était votre repas ?</h4>
-              <p className="text-sm text-gray-600">Commande #{order.id.slice(-6)}</p>
+              <p className="text-sm text-gray-600">Commande #{order.id.toString().slice(-6)}</p>
             </div>
             <Button
               variant="ghost"

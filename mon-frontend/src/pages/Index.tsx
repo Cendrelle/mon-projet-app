@@ -216,7 +216,6 @@ const Index = () => {
   const handleTrackOrder = (order) => {
     setCurrentOrder(order);
     setShowOrderTracking(true); 
-    navigate(`/suivi/${order.commande_uuid}`);
   };
 
   const handlePaymentSelect = async (paymentMethod: 'cash' | 'mobile') => {
@@ -329,7 +328,7 @@ const Index = () => {
       ratingTimer = setTimeout(() => {
         setOrderToRate(currentOrder);
         setShowRatingNotification(true);
-      }, 180000); // 3 minutes = 180000ms
+      }, 1000); // 3 minutes = 180000ms
     }
     
     return () => {

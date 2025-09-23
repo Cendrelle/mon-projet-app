@@ -38,7 +38,7 @@ const LoginPrompt = ({ onLogin, onSkip, onClose }: LoginPromptProps) => {
         lastName,
         email,
         password,
-        confirmPassword, // passwordConfirm
+        confirmPassword, 
         phone
       );
       onLogin(newUser);
