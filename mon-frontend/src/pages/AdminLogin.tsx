@@ -18,7 +18,7 @@ const AdminLogin = ({ role }: AdminLoginProps) => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { login } = useAuth(); // notre hook connecté à l'API
+  const { login, setUser } = useAuth(); // notre hook connecté à l'API
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,8 +39,8 @@ const AdminLogin = ({ role }: AdminLoginProps) => {
       }
 
       // Redirection selon le rôle
-      if (user.role === 'ADMIN') navigate('/dashboard');
-      else if (user.role === 'CUISINIER') navigate('/kitchen');
+      setUser(user);
+      console.log(`Login réussi pour ${user.role}`);
 
     } catch (err: any) {
       setError(err.message || 'Erreur serveur, réessayez plus tard');

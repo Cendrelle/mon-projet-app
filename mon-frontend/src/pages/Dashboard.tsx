@@ -29,7 +29,8 @@ import {
   Plus,
   Eye,
   Flame,
-  Filter
+  Filter,
+  RefreshCw
 } from 'lucide-react';
 
 interface DashboardStats {
@@ -626,9 +627,9 @@ const handleDeleteClient = async (id: number) => {
               <Button variant="outline" size="sm" onClick={() => window.open('/', '_blank')}>
                 App Client
               </Button>
-              <Button variant="outline" size="sm">
-                <Settings className="w-4 h-4 mr-2" />
-                Paramètres
+              <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Actualiser
               </Button>
             </div>
           </div>

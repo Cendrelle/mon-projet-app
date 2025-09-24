@@ -179,12 +179,18 @@ const Index = () => {
   };
 
   const handleLogout = () => {
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("refresh_token");
+    localStorage.removeItem("user"); // si tu stockes aussi l'utilisateur
+
+    // Si tu utilises sessionStorage aussi
+    sessionStorage.clear();
     setUser(null);
     toast({
       title: "Déconnexion",
       description: "À bientôt !",
     });
-  };
+  }; 
 
   const handleAddToCart = (menuItem: MenuItem, customizations?: any) => {
     addItem(menuItem, customizations);
