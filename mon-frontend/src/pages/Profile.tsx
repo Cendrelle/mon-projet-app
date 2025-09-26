@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import { User, Settings, Mail, Phone, MapPin, ArrowLeft } from 'lucide-react';
+import { User, Settings, Mail, Phone, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const Profile = () => {
@@ -41,7 +41,7 @@ const Profile = () => {
     setLoading(true);
     try {
       // Appel API pour mettre à jour le profil
-      const response = await authFetch(" http://localhost:8000/api/profile/update/", {
+      const response = await authFetch("http://localhost:8000/api/profile/update/", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -78,11 +78,13 @@ const Profile = () => {
     }
   };
 
-
   const handleSignOut = async () => {
     try {
       await logout();
-      navigate('/');
+      navigate('/'); // Retourner à l'accueil
+      localStorage.removeItem("refresh_token");
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("user");
       toast({
         title: "Déconnexion réussie",
         description: "À bientôt !",
@@ -98,33 +100,47 @@ const Profile = () => {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <Card className="w-full max-w-md">
-          <CardContent className="pt-6">
-            <p className="text-center text-muted-foreground">
+          <CardHeader>
+            <CardTitle className="text-center">Profil Utilisateur</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6 text-center">
+            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <User className="w-10 h-10 text-gray-400" />
+            </div>
+            <p className="text-muted-foreground mb-6">
               Vous devez être connecté pour accéder à votre profil.
             </p>
-            <Button 
-              onClick={() => navigate('/')} 
-              className="w-full mt-4"
-            >
-              Retour à l'accueil
-            </Button>
+            <div className="space-y-3">
+              <Button 
+                onClick={() => navigate('/')}
+                className="w-full bg-restaurant-500 hover:bg-restaurant-600"
+              >
+                Retour au menu
+              </Button>
+              <Button 
+                onClick={() => navigate('/login')} // ou votre route de connexion
+                variant="outline"
+                className="w-full"
+              >
+                Se connecter
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
     );
   }
 
- if (user){
-   return (
+  return (
     <div className="min-h-screen bg-background">
       <div className="container max-w-4xl mx-auto py-8 px-4">
         <div className="flex items-center gap-4 mb-8">
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => navigate('/')}
+            onClick={() => navigate(-1)} // Retour à la page précédente
             className="gap-2"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -151,21 +167,21 @@ const Profile = () => {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="first_name">Prénom</Label>
+                  <Label htmlFor="firstname">Prénom</Label>
                   <Input
-                    id="first_name"
+                    id="firstname"
                     value={profile.firstname}
-                    onChange={(e) => setProfile(prev => ({ ...prev, first_name: e.target.value }))}
+                    onChange={(e) => setProfile(prev => ({ ...prev, firstname: e.target.value }))}
                     disabled={!isEditing}
                     placeholder="Votre prénom"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="last_name">Nom</Label>
+                  <Label htmlFor="lastname">Nom</Label>
                   <Input
-                    id="last_name"
+                    id="lastname"
                     value={profile.lastname}
-                    onChange={(e) => setProfile(prev => ({ ...prev, last_name: e.target.value }))}
+                    onChange={(e) => setProfile(prev => ({ ...prev, lastname: e.target.value }))}
                     disabled={!isEditing}
                     placeholder="Votre nom"
                   />
@@ -282,7 +298,6 @@ const Profile = () => {
       </div>
     </div>
   );
- };
 };
 
 export default Profile;

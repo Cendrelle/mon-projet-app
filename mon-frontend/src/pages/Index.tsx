@@ -70,7 +70,6 @@ const Index = () => {
   const [showNotesModal, setShowNotesModal] = useState(false);
   const [pendingRating, setPendingRating] = useState<number | null>(null);
 
-  
   const handleCloseModal = () => setShowLoyaltyModal(false);
   useEffect(() => {
     const fetchLoyaltyPoints = async () => {
@@ -84,6 +83,7 @@ const Index = () => {
         console.log("Points de fidélité :", data);
 
         setLoyaltyPoints(data.total_points); 
+        //setUser(prev => prev ? { ...prev, loyaltyPoints: data } : prev);
       } catch (err) {
         console.error("Erreur fetch loyauté:", err);
       }
@@ -472,9 +472,7 @@ const Index = () => {
           onClose={handleCloseModal}
           onBack={handleBackToMenu}
         />
-
       )}
-
       {/* Header */}
       <div className="bg-white shadow-sm border-b sticky top-0 z-40">
         <div className="max-w-4xl mx-auto px-4 py-4">

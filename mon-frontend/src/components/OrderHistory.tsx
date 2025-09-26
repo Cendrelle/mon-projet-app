@@ -15,9 +15,10 @@ interface OrderHistoryProps {
 
 const OrderHistory = ({ user, onBack, currentOrder, orderHistory = [], onTrackOrder }: OrderHistoryProps) => {
   // Combiner commande actuelle et historique
-  const allOrders = currentOrder 
-    ? [currentOrder, ...orderHistory]
-    : orderHistory;
+  const allOrders = [
+    ...(currentOrder ? [currentOrder] : []),
+    ...orderHistory.filter(o => o.id !== currentOrder?.id)
+  ];
     
   // Données simulées d'historique de commandes
   const mockOrders: Order[] = [

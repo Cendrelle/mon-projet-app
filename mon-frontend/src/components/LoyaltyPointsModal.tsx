@@ -1,10 +1,8 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Gift, X, Star, Trophy } from 'lucide-react';
 import { User } from '@/types/restaurant';
-import { useNavigate } from 'react-router-dom';
 
 interface LoyaltyPointsModalProps {
   user: User;
@@ -15,22 +13,48 @@ interface LoyaltyPointsModalProps {
 const LoyaltyPointsModal = ({ user, onClose, onBack }: LoyaltyPointsModalProps) => {
   const nextRewardThreshold = 250;
   const pointsNeeded = nextRewardThreshold - (user.loyaltyPoints?.earned_points ?? 0);
-  const navigate = useNavigate();
+
+  // Fonction pour retourner au menu principal
+  const handleReturnToMenu = () => {
+    onClose(); // Fermer la modale d'abord
+    onBack(); // Utiliser la fonction onBack qui gère setAppState('menu')
+  };
 
   if (!user?.id) {
       return (
-        <div className="min-h-screen flex items-center justify-center">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <Card className="w-full max-w-md">
-            <CardContent className="pt-6">
-              <p className="text-center text-muted-foreground">
-                Vous devez être connecté pour avoir des points de fidélité.
-              </p>
-              <Button 
-                onClick={onBack} 
-                className="w-full mt-4"
+            <CardHeader className="relative">
+              <button
+                onClick={onClose}
+                className="absolute right-4 top-4 text-gray-400 hover:text-gray-600"
               >
-                Retour au menu
-              </Button>
+                <X className="w-5 h-5" />
+              </button>
+              <CardTitle className="text-center">Points de Fidélité</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-6 text-center">
+              <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Gift className="w-10 h-10 text-gray-400" />
+              </div>
+              <p className="text-muted-foreground mb-6">
+                Vous devez être connecté pour accéder à vos points de fidélité.
+              </p>
+              <div className="space-y-3">
+                <Button 
+                  onClick={handleReturnToMenu}
+                  className="w-full bg-restaurant-500 hover:bg-restaurant-600"
+                >
+                  Retour au menu
+                </Button>
+                <Button 
+                  onClick={onClose}
+                  variant="outline"
+                  className="w-full"
+                >
+                  Se connecter
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -58,7 +82,7 @@ const LoyaltyPointsModal = ({ user, onClose, onBack }: LoyaltyPointsModalProps) 
               <Trophy className="w-10 h-10 text-amber-600" />
             </div>
             <h3 className="text-2xl font-bold text-gray-900 mb-2">
-              {user.loyaltyPoints.total_points} points
+              {user?.loyaltyPoints?.total_points ?? 0} points
             </h3>
             <p className="text-gray-600">Vos points de fidélité actuels</p>
           </div>
