@@ -33,6 +33,7 @@ export interface Order {
   total: number;
   timestamp: Date;
   estimatedTime?: number;
+  description?: string;
   orderType: 'dine-in' | 'takeaway';
   paymentMethod?: 'cash' | 'mobile';
   customerInfo?: {

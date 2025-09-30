@@ -71,7 +71,7 @@ const OrderTracking = ({ order, onBackToMenu, commande_uuid: propUuid }: OrderTr
           throw new Error(`Erreur serveur ${res.status}`);
         }
         const data = await res.json();
-        console.log(data)
+        //console.log(data)
 
         const frontendStatus = mapBackendToFrontendStatus(data.statut);
 

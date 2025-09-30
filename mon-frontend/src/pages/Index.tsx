@@ -69,6 +69,7 @@ const Index = () => {
   // State pour gérer le texte et la note en attente
   const [showNotesModal, setShowNotesModal] = useState(false);
   const [pendingRating, setPendingRating] = useState<number | null>(null);
+  const [description, setDescription] = useState("");
 
   const handleCloseModal = () => setShowLoyaltyModal(false);
   useEffect(() => {
@@ -234,6 +235,7 @@ const Index = () => {
         body: JSON.stringify({
           type_service: orderType === 'dine-in' ? 'sur_place' : 'emporter',
           table_number: tableNumInt,
+          description: description,
           plats: items.map(item => ({
             plat: item.menuItem.id,
             quantite: item.quantity,
@@ -249,7 +251,7 @@ const Index = () => {
 
       // Ici tu vois la réponse complète
       const data = await res.json();
-      console.log("Réponse backend:", data);
+      //console.log("Réponse backend:", data);
 
       const order: Order = {
         id: `order-${Date.now()}`,
@@ -266,6 +268,7 @@ const Index = () => {
         timestamp: new Date(),
         orderType,
         paymentMethod,
+        description,
         customerInfo: user ? {
           id: user.id,
           name: user.name,
