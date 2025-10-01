@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
+import RespondModal from "@/components/RespondModal";
 import { 
   ChefHat, 
   Clock, 
@@ -114,6 +115,8 @@ const Dashboard = () => {
 
   // States pour le modal
   const [showDishModal, setShowDishModal] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedReviewId, setSelectedReviewId] = useState<number | null>(null);
 
   // State pour le formulaire d'ajout
   const [newDish, setNewDish] = useState({
@@ -246,41 +249,41 @@ const Dashboard = () => {
   }, []);
 
   const handleViewClient = async (id: number) => {
-  try {
+    try {
+      const token = localStorage.getItem("access_token");
+      if (!token) throw new Error("Pas de token trouvé");
+      const res = await fetch(`http://localhost:8000/api/admin/clients/${id}/`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Erreur lors de la récupération du client");
+      const data = await res.json();
+      console.log("Détails client:", data);
+      // Ouvrir un modal si tu veux afficher les infos
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleEditClient = (client: Client) => {
+    console.log("Modifier client:", client);
+    // Pré-remplir un formulaire dans un modal
+  };
+
+  const handleDeleteClient = async (id: number) => {
+    if (!confirm("Supprimer ce client ?")) return;
+
     const token = localStorage.getItem("access_token");
-    if (!token) throw new Error("Pas de token trouvé");
-    const res = await fetch(`http://localhost:8000/api/admin/clients/${id}/`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!res.ok) throw new Error("Erreur lors de la récupération du client");
-    const data = await res.json();
-    console.log("Détails client:", data);
-    // Ouvrir un modal si tu veux afficher les infos
-  } catch (err) {
-    console.error(err);
-  }
-};
-
-const handleEditClient = (client: Client) => {
-  console.log("Modifier client:", client);
-  // Pré-remplir un formulaire dans un modal
-};
-
-const handleDeleteClient = async (id: number) => {
-  if (!confirm("Supprimer ce client ?")) return;
-
-  const token = localStorage.getItem("access_token");
-  try {
-    const res = await fetch(`http://localhost:8000/api/admin/clients/${id}/`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!res.ok) throw new Error("Erreur suppression client");
-    setClients(clients.filter((c) => c.id !== id));
-  } catch (err) {
-    console.error(err);
-  }
-};
+    try {
+      const res = await fetch(`http://localhost:8000/api/admin/clients/${id}/`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Erreur suppression client");
+      setClients(clients.filter((c) => c.id !== id));
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
 
   const [orders, setOrders] = useState<Order[]>([]);
@@ -423,7 +426,7 @@ const handleDeleteClient = async (id: number) => {
     try {
       const token = localStorage.getItem("access_token");
       const response = await fetch(`http://localhost:8000/api/admin/avis/${id}/respond/`, {
-        method: "POST",
+        method: "PATCH",
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}`,
@@ -436,7 +439,28 @@ const handleDeleteClient = async (id: number) => {
       console.error(error);
     }
   };
+  const openModal = (id: number) => {
+    setSelectedReviewId(id);
+    setModalOpen(true);
+  };
 
+  const handleViewAvis = async (id: number) => {
+    try {
+      const token = localStorage.getItem("access_token"); 
+      if (!token) throw new Error("Pas de token trouvé");
+      const res = await fetch(`http://localhost:8000/api/admin/avis/${id}/`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Erreur lors de la récupération de l'avis");
+
+      const data = await res.json();
+      console.log("Détails avis:", data);
+
+      // 👉 ici tu peux ouvrir un modal et injecter `data` dedans
+    } catch (err) {
+      console.error(err);
+    }
+  };
   
   
     const getStatusColor = (status: Order["statut"]) => {
@@ -605,6 +629,24 @@ const handleDeleteClient = async (id: number) => {
     }
   };
 
+  const today = new Date().toISOString().split("T")[0];
+
+  const commandesDuJour = orders.filter(order => {
+    const orderDate = new Date(order.date_commande).toISOString().split("T")[0];
+    return orderDate === today;
+  });
+
+  const totalCommandesDuJour = commandesDuJour.length;
+
+  const totalVentesDuJour = commandesDuJour.reduce(
+    (acc, order) => acc + Number(order.total || 0),
+    0
+  );
+  const stats_today = {
+    todaySales: totalVentesDuJour,
+    completedOrders: totalCommandesDuJour,
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -705,7 +747,7 @@ const handleDeleteClient = async (id: number) => {
                   <CardDescription>Les 4 dernières commandes</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {orders.slice(0, 4).map((order) => (
+                  {orders.slice(-4).map((order) => (
                     <div key={order.id} className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
                         <Badge className={getStatusColor(order.statut)}>
@@ -715,7 +757,7 @@ const handleDeleteClient = async (id: number) => {
                         <div>
                           <p className="font-medium">{order.table}</p>
                           <p className="text-sm text-muted-foreground">
-                            {order.plats.join(', ')}
+                            {order.plats.map(item => item.plat.nom_plat).join(', ')}
                           </p>
                         </div>
                       </div>
@@ -739,15 +781,15 @@ const handleDeleteClient = async (id: number) => {
                   <div>
                     <div className="flex justify-between text-sm mb-2">
                       <span>Objectif revenus</span>
-                      <span>{stats.todaySales}/5000FCFA</span>
+                      <span>{stats_today.todaySales}/70.000FCFA</span>
                     </div>
-                    <Progress value={(stats.todaySales / 5000) * 100} className="h-2" />
+                    <Progress value={(stats_today.todaySales / 70000) * 100} className="h-2" />
                   </div>
                   
                   <div>
                     <div className="flex justify-between text-sm mb-2">
                       <span>Commandes servies</span>
-                      <span>{stats.completedOrders}/120</span>
+                      <span>{stats_today.completedOrders}/120</span>
                     </div>
                     <Progress value={(stats.completedOrders / 120) * 100} className="h-2" />
                   </div>
@@ -1011,12 +1053,19 @@ const handleDeleteClient = async (id: number) => {
                           {/* Si tu ajoutes une API pour répondre, tu peux garder ce bouton */}
                           <Button
                             size="sm"
-                            onClick={() => handleRespondReview(review.id, "Merci pour votre retour !")}
-                          >
+                            onClick={() => openModal(review.id)}>
                             Répondre
                           </Button>
+                          {selectedReviewId && (
+                            <RespondModal
+                              reviewId={selectedReviewId}
+                              isOpen={modalOpen}
+                              onClose={() => setModalOpen(false)}
+                              onRespond={handleRespondReview}
+                            />
+                          )}
 
-                          <Button size="sm" variant="outline">
+                          <Button size="sm" variant="outline" onClick={() => handleViewAvis(review.id)}>
                             <Eye className="w-4 h-4" />
                           </Button>
                         </div>
