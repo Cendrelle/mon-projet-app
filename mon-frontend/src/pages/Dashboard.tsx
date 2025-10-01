@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import RespondModal from "@/components/RespondModal";
+import DetailsModal from '@/components/DetailsModal';
 import { 
   ChefHat, 
   Clock, 
@@ -115,8 +116,14 @@ const Dashboard = () => {
 
   // States pour le modal
   const [showDishModal, setShowDishModal] = useState(false);
-  const [modalOpen, setModalOpen] = useState(false);
   const [selectedReviewId, setSelectedReviewId] = useState<number | null>(null);
+
+  type ModalType = "avis" | "client" | "plat" | null;
+
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedData, setSelectedData] = useState<any | null>(null);
+  const [modalType, setModalType] = useState<ModalType>(null);
+
 
   // State pour le formulaire d'ajout
   const [newDish, setNewDish] = useState({
@@ -258,6 +265,8 @@ const Dashboard = () => {
       if (!res.ok) throw new Error("Erreur lors de la récupération du client");
       const data = await res.json();
       console.log("Détails client:", data);
+      setSelectedData(data);
+      setModalOpen(true);
       // Ouvrir un modal si tu veux afficher les infos
     } catch (err) {
       console.error(err);
@@ -454,14 +463,21 @@ const Dashboard = () => {
       if (!res.ok) throw new Error("Erreur lors de la récupération de l'avis");
 
       const data = await res.json();
-      console.log("Détails avis:", data);
+      setSelectedData(data);
+      setModalOpen(true);
 
       // 👉 ici tu peux ouvrir un modal et injecter `data` dedans
     } catch (err) {
       console.error(err);
     }
   };
-  
+
+  const openDetailsModal = (type: ModalType, data: any) => {
+    setModalType(type);
+    setSelectedData(data);
+    setModalOpen(true);
+  };
+    
   
     const getStatusColor = (status: Order["statut"]) => {
       switch (status) {
@@ -622,7 +638,8 @@ const Dashboard = () => {
       if (!response.ok) throw new Error("Erreur lors de la récupération du plat");
 
       const dishDetails = await response.json();
-      console.log(dishDetails);
+      setSelectedData(dishDetails);
+      setModalOpen(true);
       // ici tu peux ouvrir un modal pour afficher les infos
     } catch (error) {
       console.error(error);
@@ -649,6 +666,54 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <DetailsModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title={
+          modalType === "avis"
+            ? `Détails de l'avis #${selectedData?.id}`
+            : modalType === "client"
+            ? `Détails du client #${selectedData?.id}`
+            : modalType === "plat"
+            ? `Détails du plat #${selectedData?.id}`
+            : "Détails"
+        }
+        data={selectedData}
+        renderContent={(data) => {
+          if (modalType === "avis") {
+            return (
+              <>
+                <p><strong>Client :</strong> {data.client?.username || "Invité"}</p>
+                <p><strong>Note :</strong> {data.note} / 5</p>
+                <p><strong>Description :</strong> {data.description}</p>
+                {data.reponse && <p className="text-green-600"><strong>Réponse :</strong> {data.reponse}</p>}
+              </>
+            );
+          }
+          if (modalType === "client") {
+            return (
+              <>
+                <p><strong>Nom :</strong> {data.firstname} {data.lastname}</p>
+                <p><strong>Email :</strong> {data.email}</p>
+                <p><strong>Date d’inscription :</strong> {data.date_joined}</p>
+              </>
+            );
+          }
+          if (modalType === "plat") {
+            return (
+              <>
+                <p><strong>Nom :</strong> {data.nom_plat}</p>
+                <p><strong>Prix :</strong> {data.prix} FCFA</p>
+                <p><strong>Catégorie :</strong> {data.categorie}</p>
+                <p><strong>Description :</strong> {data.description}</p>
+              </>
+            );
+          }
+          return null;
+        }}
+      />
+
+
       {/* Header */}
       <div className="border-b bg-card">
         <div className="container mx-auto px-6 py-4">
@@ -861,7 +926,7 @@ const Dashboard = () => {
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => alert(JSON.stringify(dish, null, 2))}
+                              onClick={() => openDetailsModal("plat", dish)}
                             >
                               <Eye className="w-4 h-4" />
                             </Button>
@@ -1065,7 +1130,7 @@ const Dashboard = () => {
                             />
                           )}
 
-                          <Button size="sm" variant="outline" onClick={() => handleViewAvis(review.id)}>
+                          <Button size="sm" variant="outline" onClick={() => openDetailsModal("avis", review)}>
                             <Eye className="w-4 h-4" />
                           </Button>
                         </div>
@@ -1125,7 +1190,7 @@ const Dashboard = () => {
                               <p className="text-xs text-muted-foreground">{client.last_login || "—"}</p>
                             </div>
                             <div className="flex space-x-2">
-                              <Button size="sm" variant="outline" onClick={() => handleViewClient(client.id)}>
+                              <Button size="sm" variant="outline" onClick={() => openDetailsModal("client", client)}>
                                 <Eye className="w-4 h-4" />
                               </Button>
                               <Button size="sm" variant="outline" onClick={() => handleEditClient(client)}>
