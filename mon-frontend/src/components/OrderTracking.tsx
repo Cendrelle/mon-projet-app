@@ -334,7 +334,7 @@ const OrderTracking = ({ order, onBackToMenu, commande_uuid: propUuid }: OrderTr
               
               <div className="border-t pt-3 flex justify-between items-center font-bold text-lg">
                 <span>Total</span>
-                <span>{order.total.toFixed(2)}FCFA</span>
+                <span>{Number(order.total).toFixed(2)}FCFA</span>
               </div>
             </div>
           </CardContent>

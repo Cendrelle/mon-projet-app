@@ -35,7 +35,9 @@ export const useOrderWebSocket = (onNewOrder: (order: Order) => void) => {
   useEffect(() => {
     const connect = () => {
       // Connexion WebSocket
-      const ws = new WebSocket('ws://127.0.0.1:8000/ws/orders/');
+      const token = localStorage.getItem("token"); // ou récupéré après login
+      const ws = new WebSocket(`ws://127.0.0.1:8000/ws/orders/?token=${token}`);
+
       wsRef.current = ws;
 
       ws.onopen = () => {
