@@ -7,6 +7,8 @@ import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import RespondModal from "@/components/RespondModal";
 import DetailsModal from '@/components/DetailsModal';
+import { useNavigate } from "react-router-dom";
+import { useAuth } from '@/hooks/useAuth';
 import { 
   ChefHat, 
   Clock, 
@@ -199,6 +201,16 @@ const Dashboard = () => {
     avgWaitTime: 0,
     plats_populaires: []
   });
+
+  /* const navigate = useNavigate();
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (!user) {
+      navigate("/login");
+    }
+  }, [user, navigate]); */
+
 
 
   useEffect(() => {
@@ -482,15 +494,15 @@ const Dashboard = () => {
     const getStatusColor = (status: Order["statut"]) => {
       switch (status) {
         case "confirmee":
-          return "bg-red-100 text-red-800 border-red-200";
+          return "bg-orange-100 text-orange-700 border-orange-400";
         case "en_cours":
-          return "bg-blue-100 text-blue-800 border-blue-200";
+          return "bg-blue-100 text-blue-700 border-blue-400";
         case "pretee":
           return "bg-green-100 text-green-800 border-green-200";
         case "servie":
-          return "bg-gray-100 text-gray-800 border-gray-200";
+          return "bg-red-100 text-gray-800 border-gray-200";
         default:
-          return "bg-gray-100 text-gray-800 border-gray-200";
+          return "bg-orange-100 text-gray-700 border-gray-400";
       }
     };
   
@@ -665,7 +677,7 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-tr  px-4 py-8">
       <DetailsModal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
@@ -715,16 +727,16 @@ const Dashboard = () => {
 
 
       {/* Header */}
-      <div className="border-b bg-card">
+      <div className="border-b bg-gradient-to-r from-orange-500 to-orange-400 text-black shadow-xl rounded-b-2xl">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-foreground">Dashboard Restaurant</h1>
-              <p className="text-muted-foreground">Tableau de bord en temps réel</p>
+              <h1 className="text-3xl font-bold drop-shadow text-white">Dashboard Restaurant</h1>
+              <p className="text-white/80">Tableau de bord en temps réel</p>
             </div>
             <div className="flex items-center space-x-4">
-              <Badge variant="outline" className="flex items-center space-x-1">
-                <Calendar className="w-4 h-4" />
+              <Badge variant="outline" className="bg-white text-orange-600 font-semibold">
+                <Calendar className="w-4 h-4 mr-1" />
                 <span>{new Date().toLocaleDateString('fr-FR')}</span>
               </Badge>
               <Button variant="outline" size="sm" onClick={() => window.open('/kitchen', '_blank')}>
@@ -759,10 +771,11 @@ const Dashboard = () => {
           <TabsContent value="overview" className="space-y-6">
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Revenus du jour</CardTitle>
-                  <DollarSign className="h-4 w-4 text-muted-foreground" />
+              <Card className="relative overflow-visible shadow-xl rounded-xl border-none group">
+                <div className="absolute -top-2 left-4 h-1 w-24 rounded-full bg-gradient-to-r from-green-400 to-green-500 group-hover:from-green-600 group-hover:to-green-400 transition"></div>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-lg font-bold text-orange-700">Revenus du jour</CardTitle>
+                  <DollarSign className="h-6 w-6 text-orange-400" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{stats.revenue}FCFA</div>
@@ -770,10 +783,11 @@ const Dashboard = () => {
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Commandes actives</CardTitle>
-                  <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+              <Card className="relative overflow-visible shadow-xl rounded-xl border-none group">
+                <div className="absolute -top-2 left-4 h-1 w-24 rounded-full bg-gradient-to-r from-green-400 to-green-500 group-hover:from-green-600 group-hover:to-green-400 transition"></div>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-lg font-bold text-orange-700">Commandes actives</CardTitle>
+                  <ShoppingCart className="h-6 w-6 text-orange-400" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{stats.active_orders}</div>
@@ -781,10 +795,11 @@ const Dashboard = () => {
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Temps d'attente</CardTitle>
-                  <Clock className="h-4 w-4 text-muted-foreground" />
+              <Card className="relative overflow-visible shadow-xl rounded-xl border-none group">
+                <div className="absolute -top-2 left-4 h-1 w-24 rounded-full bg-gradient-to-r from-green-400 to-green-500 group-hover:from-green-600 group-hover:to-green-400 transition"></div>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-lg font-bold text-orange-700">Temps d'attente</CardTitle>
+                  <Clock className="h-6 w-6 text-orange-400" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{stats.avgWaitTime} min</div>
@@ -792,10 +807,11 @@ const Dashboard = () => {
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Clients servis</CardTitle>
-                  <Users className="h-4 w-4 text-muted-foreground" />
+              <Card className="relative overflow-visible shadow-xl rounded-xl border-none group">
+                <div className="absolute -top-2 left-4 h-1 w-24 rounded-full bg-gradient-to-r from-green-400 to-green-500 group-hover:from-green-600 group-hover:to-green-400 transition"></div>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-lg font-bold text-orange-700">Clients servis</CardTitle>
+                  <Users className="h-6 w-6 text-orange-400" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{stats.total_clients}</div>
@@ -848,7 +864,10 @@ const Dashboard = () => {
                       <span>Objectif revenus</span>
                       <span>{stats_today.todaySales}/70.000FCFA</span>
                     </div>
-                    <Progress value={(stats_today.todaySales / 70000) * 100} className="h-2" />
+                    <Progress value={(stats_today.todaySales / 70000) * 100} className="h-3 bg-gray-200 rounded-full"
+                      style={{
+                        background: 'linear-gradient(to right, #ff6a00, #dedbc9ff)'
+                      }} />
                   </div>
                   
                   <div>
@@ -856,7 +875,10 @@ const Dashboard = () => {
                       <span>Commandes servies</span>
                       <span>{stats_today.completedOrders}/120</span>
                     </div>
-                    <Progress value={(stats.completedOrders / 120) * 100} className="h-2" />
+                    <Progress value={(stats.completedOrders / 120) * 100} className="h-3 bg-gray-200 rounded-full"
+                      style={{
+                        background: 'linear-gradient(to right, #ff6a00, #dedbc9ff)'
+                      }} />
                   </div>
                   
                   <div>
@@ -864,7 +886,10 @@ const Dashboard = () => {
                       <span>Satisfaction client</span>
                       <span>4.8/5.0</span>
                     </div>
-                    <Progress value={96} className="h-2" />
+                    <Progress value={96} className="h-3 bg-gray-200 rounded-full"
+                      style={{
+                        background: 'linear-gradient(to right, #ff6a00, #dedbc9ff)'
+                      }} />
                   </div>
                 </CardContent>
               </Card>
@@ -873,7 +898,8 @@ const Dashboard = () => {
 
           {/* Menu Tab */}
           <TabsContent value="menu" className="space-y-6">
-            <Card>
+            <Card className="relative overflow-visible shadow-xl rounded-xl border-none group">
+                <div className="absolute -top-2 left-4 h-1 w-24 rounded-full bg-gradient-to-r from-green-400 to-green-500 group-hover:from-green-600 group-hover:to-green-400 transition"></div>
               <CardHeader>
                 <div className="flex justify-between items-center">
                   <div>
@@ -950,7 +976,8 @@ const Dashboard = () => {
 
           {/* Orders Tab */}
           <TabsContent value="orders" className="space-y-6">
-            <Card>
+            <Card className="relative overflow-visible shadow-xl rounded-xl border-none group">
+                <div className="absolute -top-2 left-4 h-1 w-24 rounded-full bg-gradient-to-r from-green-400 to-green-500 group-hover:from-green-600 group-hover:to-green-400 transition"></div>
               <CardHeader>
                 <CardTitle>Gestion des commandes</CardTitle>
                 <CardDescription>Suivi en temps réel de toutes les commandes</CardDescription>
@@ -1032,7 +1059,8 @@ const Dashboard = () => {
 
           {/* Payments Tab */}
           <TabsContent value="payments" className="space-y-6">
-            <Card>
+            <Card className="relative overflow-visible shadow-xl rounded-xl border-none group">
+                <div className="absolute -top-2 left-4 h-1 w-24 rounded-full bg-gradient-to-r from-green-400 to-green-500 group-hover:from-green-600 group-hover:to-green-400 transition"></div>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <CreditCard className="w-5 h-5" />
@@ -1076,7 +1104,8 @@ const Dashboard = () => {
 
           {/* Reviews Tab */}
           <TabsContent value="reviews" className="space-y-6">
-            <Card>
+            <Card className="relative overflow-visible shadow-xl rounded-xl border-none group">
+                <div className="absolute -top-2 left-4 h-1 w-24 rounded-full bg-gradient-to-r from-green-400 to-green-500 group-hover:from-green-600 group-hover:to-green-400 transition"></div>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <MessageSquare className="w-5 h-5" />
@@ -1144,7 +1173,8 @@ const Dashboard = () => {
 
           {/* Customers Tab */}
           <TabsContent value="customers" className="space-y-6">
-            <Card>
+            <Card className="relative overflow-visible shadow-xl rounded-xl border-none group">
+                <div className="absolute -top-2 left-4 h-1 w-24 rounded-full bg-gradient-to-r from-green-400 to-green-500 group-hover:from-green-600 group-hover:to-green-400 transition"></div>
               <CardHeader>
                 <div className="flex justify-between items-center">
                   <div>
@@ -1213,7 +1243,8 @@ const Dashboard = () => {
           {/* Analytics Tab */}
           <TabsContent value="analytics" className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-              <Card>
+              <Card className="relative overflow-visible shadow-xl rounded-xl border-none group">
+                <div className="absolute -top-2 left-4 h-1 w-24 rounded-full bg-gradient-to-r from-green-400 to-green-500 group-hover:from-green-600 group-hover:to-green-400 transition"></div>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Ventes mensuelles</CardTitle>
                   <TrendingUp className="h-4 w-4 text-muted-foreground" />

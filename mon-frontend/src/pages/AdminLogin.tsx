@@ -41,6 +41,11 @@ const AdminLogin = ({ role }: AdminLoginProps) => {
       // Redirection selon le rôle
       setUser(user);
       console.log(`Login réussi pour ${user.role}`);
+      if (role === 'admin') {
+        navigate('/dashboard');
+      } else if (role === 'kitchen') {
+        navigate('/kitchen');
+      }
 
     } catch (err: any) {
       setError(err.message || 'Erreur serveur, réessayez plus tard');
