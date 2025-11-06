@@ -2,8 +2,10 @@
 env/
 venv/
 .venv/
+.env
 
 __pycache__/
+.env
 *.pyc
 *.pyo
 *.pyd

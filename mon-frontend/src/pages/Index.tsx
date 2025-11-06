@@ -65,7 +65,8 @@ const Index = () => {
   const { currentOrder, orderHistory, addOrder, completeCurrentOrder, updateCurrentOrderStatus, setCurrentOrder } = useOrders();
   const [dailySpecials, setDailySpecials] = useState<MenuItem[]>([])
   const { authFetch } = useAuth()
-  const [loyaltyPoints, setLoyaltyPoints] = useState<{ earned_points: number; total_points: number } | null>(null);
+  const [loyaltyPoints, setLoyaltyPoints] = useState<number>(user?.loyaltyPoints?.total_points ?? 0);
+
   // State pour gérer le texte et la note en attente
   const [showNotesModal, setShowNotesModal] = useState(false);
   const [pendingRating, setPendingRating] = useState<number | null>(null);
@@ -229,6 +230,19 @@ const Index = () => {
     try {
       const tableNumInt = parseInt(tableNumber.replace(/\D/g, ''), 10);
 
+      const remarquesConcat = [
+        // remarques spécifiques à chaque plat
+        ...items
+          .filter(item => item.customizations?.notes?.trim()) // seulement si notes non vides
+          .map(item => `${item.menuItem.name}: ${item.customizations.notes.trim()}`),
+
+        // remarque globale (dans le panier)
+        description?.trim() ? `Autres: ${description.trim()}` : null,
+        orderNotes?.trim() ? `Remarque générale: ${orderNotes.trim()}` : null
+      ]
+        .filter(Boolean)
+        .join(' | '); // tu peux changer le séparateur ici si tu veux des sauts de ligne
+
       const res = await fetch('http://localhost:8000/api/valider-commande/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -236,6 +250,7 @@ const Index = () => {
           type_service: orderType === 'dine-in' ? 'sur_place' : 'emporter',
           table_number: tableNumInt,
           description: description,
+          remarques: remarquesConcat, 
           plats: items.map(item => ({
             plat: item.menuItem.id,
             quantite: item.quantity,
@@ -284,18 +299,17 @@ const Index = () => {
       setAppState('tracking');
 
       // Simulation de points de fidélité
-      if (user.id) {
-        const pointsEarned = Math.floor(getTotal());
-        const earned = user.loyaltyPoints?.earned_points ?? 0;
-        const total = user.loyaltyPoints?.total_points ?? 0;
-        setUser({ ...user, loyaltyPoints: {
-          ...user.loyaltyPoints,
-          earned_points: earned + pointsEarned,
-          total_points: total + pointsEarned, // si tu veux aussi incrémenter
-        }});
+      if (user?.id) {
+        setUser({
+          ...user,
+          loyaltyPoints: {
+            total_points: data.loyalty_points, // valeur renvoyée par le backend
+            earned_points: data.earned_points ?? 0, // si tu veux montrer ce qui vient d'être gagné
+          }
+        });
         toast({
           title: "Commande confirmée !",
-          description: `Votre commande a été transmise. +${pointsEarned} points de fidélité gagnés !`,
+          description: `Votre commande a été transmise. +${data.earned_points} points de fidélité gagnés !`,
         });
       } else {
         toast({
@@ -471,7 +485,7 @@ const Index = () => {
     <div className="min-h-screen bg-gray-50">
       {showLoyaltyModal && user && (
         <LoyaltyPointsModal
-          user={{ ...user, loyaltyPoints }} 
+          user={user } 
           onClose={handleCloseModal}
           onBack={handleBackToMenu}
         />
@@ -508,7 +522,7 @@ const Index = () => {
                     className={`bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100 ${isMobile ? 'min-h-12 px-4' : ''}`}
                   >
                     <Gift className={`${isMobile ? 'w-4 h-4 mr-2' : 'w-3 h-3 mr-1'}`} />
-                    {user?.loyaltyPoints?.total_points ?? 0} pts
+                    {loyaltyPoints} pts
                   </Button>
                   <Button
                     variant="outline"

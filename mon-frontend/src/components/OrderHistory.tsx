@@ -131,7 +131,7 @@ const OrderHistory = ({ user, onBack, currentOrder, orderHistory = [], onTrackOr
                     )}
                   </div>
                   <div className="text-right">
-                    <p className="font-bold text-lg">{order.total.toFixed(2)}FCFA</p>
+                    <p className="font-bold text-lg">{Number(order.total).toFixed(2)}FCFA</p>
                     <Badge 
                       variant="outline" 
                       className="flex items-center space-x-1 w-fit"

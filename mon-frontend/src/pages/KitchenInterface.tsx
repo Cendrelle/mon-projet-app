@@ -27,6 +27,7 @@ interface Order {
   statut: "en_attente" | "confirmee" | "en_cours" | "pretee" | "servie";
   total: string;
   description?: string;
+  remarques?: string;
   type_service: string;
   plats: Array<{
     id: number;
@@ -52,7 +53,7 @@ const KitchenInterface = () => {
   const { toast } = useToast();
 
   // Fonction pour gérer les nouvelles commandes via WebSocket
-  const handleNewOrder = (order: Order) => {
+  /* const handleNewOrder = (order: Order) => {
     // Ajouter la nouvelle commande en haut de la liste
     setOrders(prev => [order, ...prev]);
     
@@ -66,10 +67,10 @@ const KitchenInterface = () => {
     // Notification sonore
     const audio = new Audio('/notification.mp3');
     audio.play().catch(e => console.log('Erreur audio:', e));
-  };
+  }; */
 
   // Hook WebSocket pour recevoir les commandes en temps réel
-  const { isConnected } = useOrderWebSocket(handleNewOrder);
+  //const { isConnected } = useOrderWebSocket(handleNewOrder);
 
   // Actualisation de l'heure toutes les 30s
   useEffect(() => {
@@ -78,7 +79,7 @@ const KitchenInterface = () => {
   }, []);
 
   // Chargement initial des commandes
-  useEffect(() => {
+  //useEffect(() => {
     const fetchOrders = async () => {
       try {
         const token = localStorage.getItem("access_token");
@@ -94,6 +95,27 @@ const KitchenInterface = () => {
         if (!response.ok) throw new Error("Erreur API");
 
         const data = await response.json();
+
+        // 🔔 Vérification : y a-t-il de nouvelles commandes ?
+      if (orders.length > 0 && data.length > orders.length) {
+        const nouvellesCommandes = data.filter(
+          (order: Order) => !orders.some(o => o.id === order.id)
+        );
+
+        if (nouvellesCommandes.length > 0) {
+          const nouvelle = nouvellesCommandes[0];
+          // Notification visuelle
+          toast({
+            title: "🔔 Nouvelle commande !",
+            description: `Table ${nouvelle.table} - ${nouvelle.plats.length} plat(s)`,
+          });
+
+          // Notification sonore
+          const audio = new Audio('/notification.mp3');
+          audio.play().catch(e => console.log('Erreur audio:', e));
+        }
+      }
+
         setOrders(data);
         setLoading(false);
       } catch (error) {
@@ -102,8 +124,12 @@ const KitchenInterface = () => {
       }
     };
 
-    fetchOrders();
-  }, []);
+    useEffect(() => {
+      fetchOrders(); // fetch initial
+      const interval = setInterval(fetchOrders, 15000); // polling toutes les 15s
+      return () => clearInterval(interval);
+    }
+  , []);
 
   const getStatusColor = (status: Order["statut"]) => {
     switch (status) {
@@ -214,7 +240,8 @@ const KitchenInterface = () => {
             </div>
             <div className="flex items-center space-x-4">
               {/* Indicateur de connexion WebSocket */}
-              <Badge 
+              {/* 
+                <Badge 
                 variant="outline" 
                 className={`flex items-center space-x-2 ${
                   isConnected 
@@ -234,6 +261,7 @@ const KitchenInterface = () => {
                   </>
                 )}
               </Badge>
+              */}
               
               <Badge variant="outline" className="flex items-center space-x-1 bg-white/20 border-white/30 text-white">
                 <Clock className="w-4 h-4" />
@@ -309,10 +337,10 @@ const KitchenInterface = () => {
                     </div>
                   ))}
                   
-                  {order.description && (
+                  {order.remarques && (
                     <div className="bg-yellow-50 border border-yellow-200 rounded p-2 mt-2">
                       <p className="text-sm text-yellow-800">
-                        <strong>Remarque:</strong> {order.description}
+                        <strong>Remarque:</strong> {order.remarques}
                       </p>
                     </div>
                   )}
