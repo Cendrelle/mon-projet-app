@@ -9,6 +9,7 @@ import RespondModal from "@/components/RespondModal";
 import DetailsModal from '@/components/DetailsModal';
 import { useNavigate } from "react-router-dom";
 import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
 import { 
   ChefHat, 
   Clock, 
@@ -61,6 +62,7 @@ interface PlatMenu {
   disponibilite: boolean;
   description: string;
   image?: File | null;
+  isDailySpecial?: boolean;
 }
 
 interface Order {
@@ -125,6 +127,7 @@ const Dashboard = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedData, setSelectedData] = useState<any | null>(null);
   const [modalType, setModalType] = useState<ModalType>(null);
+  const { toast } = useToast();
 
 
   // State pour le formulaire d'ajout
@@ -658,6 +661,42 @@ const Dashboard = () => {
     }
   };
 
+  const handleToggleDailySpecial = async (dish) => {
+    try {
+      const response = await fetch(
+        `http://localhost:8000/api/daily-menu/toggle/`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + user.token, // pour sécurité admin
+          },
+          body: JSON.stringify({ plat_id: dish.id }),
+        }
+      );
+      if (response.ok) {
+        // Re-fetch le menu pour update isDailySpecial localement !
+        fetchDailySpecials();
+        toast({
+          title: dish.isDailySpecial ? "Retiré du menu du jour" : "Ajouté en menu du jour",
+        });
+      } else {
+        toast({
+          title: "Erreur",
+          description: "Impossible de modifier le menu du jour",
+          variant: "destructive",
+        });
+      }
+    } catch (err) {
+      toast({
+        title: "Erreur technique",
+        description: err.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+
   const today = new Date().toISOString().split("T")[0];
 
   const commandesDuJour = orders.filter(order => {
@@ -962,6 +1001,14 @@ const Dashboard = () => {
                               onClick={() => handleDeleteDish(dish.id)}
                             >
                               <Trash2 className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant={dish.isDailySpecial ? "solid" : "outline"}
+                              className={dish.isDailySpecial ? "bg-green-500 text-white" : ""}
+                              onClick={() => handleToggleDailySpecial(dish)}
+                            >
+                              {dish.isDailySpecial ? "Menu du jour ✅" : "Définir menu du jour"}
                             </Button>
                           </div>
                         </div>

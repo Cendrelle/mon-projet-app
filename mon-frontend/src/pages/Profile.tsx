@@ -7,12 +7,13 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { User, Settings, Mail, Phone, ArrowLeft } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 const Profile = () => {
   const { user, logout, authFetch, setUser } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
   
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -98,6 +99,23 @@ const Profile = () => {
     }
   };
 
+  const handleBack = () => {
+    const from = location.state?.from;
+    if (from) {
+      navigate(from);
+      return;
+    }
+    const historyState = window.history.state;
+    const canGoBack = typeof historyState?.idx === 'number' && historyState.idx > 0;
+    if (canGoBack) {
+      navigate(-1);
+      return;
+    }
+    navigate('/'); // Ici c'est la route de ton menu principal
+  };
+
+
+
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -140,7 +158,7 @@ const Profile = () => {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => navigate(-1)} // Retour à la page précédente
+            onClick={handleBack} // Retour à la page précédente
             className="gap-2"
           >
             <ArrowLeft className="h-4 w-4" />

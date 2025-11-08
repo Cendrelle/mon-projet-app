@@ -245,7 +245,9 @@ const Index = () => {
 
       const res = await fetch('http://localhost:8000/api/valider-commande/', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json',
+          //Authorization: 'Bearer ' + user.token
+         },
         body: JSON.stringify({
           type_service: orderType === 'dine-in' ? 'sur_place' : 'emporter',
           table_number: tableNumInt,
@@ -258,9 +260,11 @@ const Index = () => {
           }))
         })
       });
+      console.log("Token utilisé pour la commande :", user.token);
 
       if (!res.ok) {
         const data = await res.json();
+        console.error("Réponse backend erreur :", data); 
         throw new Error(data.error || "Erreur lors de la validation de la commande");
       }
 
@@ -482,7 +486,7 @@ const Index = () => {
 
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-orange-100 via-white to-orange-50">
       {showLoyaltyModal && user && (
         <LoyaltyPointsModal
           user={user } 
@@ -519,7 +523,7 @@ const Index = () => {
                     variant="outline"
                     size={isMobile ? 'default' : 'sm'}
                     onClick={() => setShowLoyaltyModal(true)}
-                    className={`bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100 ${isMobile ? 'min-h-12 px-4' : ''}`}
+                    className={`bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100 shadow transition rounded-xl ${isMobile ? 'min-h-12 px-4' : ''}`}
                   >
                     <Gift className={`${isMobile ? 'w-4 h-4 mr-2' : 'w-3 h-3 mr-1'}`} />
                     {loyaltyPoints} pts
@@ -527,8 +531,8 @@ const Index = () => {
                   <Button
                     variant="outline"
                     size={isMobile ? 'default' : 'sm'}
-                    onClick={() => navigate('/profile')}
-                    className={`${isMobile ? 'min-h-12 px-4' : ''}`}
+                    onClick={() => navigate('/profile', { state: { from: '/' } })}
+                    className={`shadow transition rounded-xl ${isMobile ? 'min-h-12 px-4' : ''}`}
                   >
                     <Settings className={`${isMobile ? 'w-4 h-4 mr-2' : 'w-4 h-4 mr-1'}`} />
                     {isMobile ? 'Mon profil' : 'Profil'}
@@ -537,7 +541,7 @@ const Index = () => {
                     variant="outline"
                     size={isMobile ? 'default' : 'sm'}
                     onClick={handleShowHistory}
-                    className={`${isMobile ? 'min-h-12 px-4' : ''}`}
+                    className={`shadow transition rounded-xl ${isMobile ? 'min-h-12 px-4' : ''}`}
                   >
                     <History className={`${isMobile ? 'w-4 h-4 mr-2' : 'w-4 h-4 mr-1'}`} />
                     {isMobile ? 'Historique' : 'Historique'}
@@ -546,16 +550,16 @@ const Index = () => {
                     variant="outline"
                     size={isMobile ? 'default' : 'sm'}
                     onClick={handleLogout}
-                    className={`${isMobile ? 'min-h-12 px-4' : ''}`}
+                    className={`shadow transition rounded-xl ${isMobile ? 'min-h-12 px-4' : ''}`}
                   >
-                    <LogOut className={`${isMobile ? 'w-4 h-4 mr-2' : 'w-4 h-4 mr-1'}`} />
+                    <LogOut className={`shadow transition rounded-xl ${isMobile ? 'w-4 h-4 mr-2' : 'w-4 h-4 mr-1'}`} />
                     {isMobile ? 'Déconnexion' : 'Déconnexion'}
                   </Button>
                   <Button
                     variant="outline"
                     size={isMobile ? 'default' : 'sm'}
                     onClick={() => setAppState('scanner')}
-                    className={`${isMobile ? 'min-h-12 px-4' : ''}`}
+                    className={`shadow transition rounded-xl ${isMobile ? 'min-h-12 px-4' : ''}`}
                   >
                     <QrCode className={`${isMobile ? 'w-4 h-4 mr-2' : 'w-4 h-4 mr-1'}`} />
                     {isMobile ? 'Changer table' : 'Changer table'}
@@ -572,7 +576,7 @@ const Index = () => {
                     }}
                     className={`${isMobile ? 'min-h-12 px-4 flex-1' : ''}`}
                   >
-                    <UserIcon className={`${isMobile ? 'w-4 h-4 mr-2' : 'w-4 h-4 mr-1'}`} />
+                    <UserIcon className={`shadow transition rounded-xl ${isMobile ? 'w-4 h-4 mr-2' : 'w-4 h-4 mr-1'}`} />
                     Se connecter
                   </Button>
                   <Button
@@ -581,7 +585,7 @@ const Index = () => {
                     onClick={() => setAppState('scanner')}
                     className={`${isMobile ? 'min-h-12 px-4 flex-1' : ''}`}
                   >
-                    <QrCode className={`${isMobile ? 'w-4 h-4 mr-2' : 'w-4 h-4 mr-1'}`} />
+                    <QrCode className={`shadow transition rounded-xl ${isMobile ? 'w-4 h-4 mr-2' : 'w-4 h-4 mr-1'}`} />
                     Changer table
                   </Button>
                 </div>
@@ -592,7 +596,7 @@ const Index = () => {
       </div>
 
       {/* Menu Content */}
-      <div className="max-w-4xl mx-auto px-4 py-6">
+      <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Daily Specials */}
         <DailySpecials 
           specialItems={dailySpecials} 
@@ -609,7 +613,7 @@ const Index = () => {
         )}
 
         <Tabs defaultValue={categories[0]} className="space-y-6">
-          <TabsList className={`${isMobile ? 'grid w-full grid-cols-2 h-auto' : 'grid w-full grid-cols-4'}`}>
+          <TabsList className={`${isMobile ? 'grid w-full grid-cols-2 h-auto' : 'grid w-full grid-cols-6'} shadow-lg bg-white rounded-xl overflow-hidden`}>
             {categories.map((category) => (
               <TabsTrigger 
                 key={category} 

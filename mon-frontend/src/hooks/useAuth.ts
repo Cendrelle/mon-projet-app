@@ -33,8 +33,17 @@ export const useAuth = () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
     });
-
     const data = await res.json();
+    setUser({
+
+      id: data.id, // Si tu veux l'id, il faut soit le renvoyer dans le login, soit faire une requête 'me'
+      name: '',
+      email: data.email,
+      token: data.access,
+      role: data.role
+    });
+    
+    //const data = await res.json();
 
     if (!res.ok) throw new Error(data.detail || 'Login failed');
 

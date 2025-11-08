@@ -71,6 +71,7 @@ export interface User {
   orderHistory: Order[];
   preferences: string[];
   date_joined: string;
+  token?: string;
 }
 
 export interface DailyMenu {
