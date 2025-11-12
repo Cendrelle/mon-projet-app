@@ -71,11 +71,11 @@ const hasCustomizations = item.category !== 'boisson';
             
             <Button
               onClick={() => hasCustomizations ? setShowCustomization(true) : handleAddToCart()}
-              className={`bg-restaurant-500 hover:bg-restaurant-600 text-white ${isMobile ? 'w-full min-h-12 text-base' : 'ml-auto'}`}
-              size={isMobile ? 'lg' : 'sm'}
+              className="bottom-2 right-2 rounded-full bg-restaurant-500 text-white shadow hover:scale-110"
+              size="icon"
             >
-              <Plus className={`mr-2 ${isMobile ? 'w-5 h-5' : 'w-4 h-4'}`} />
-              Ajouter
+              <Plus className="h-5 w-5" />
+              
             </Button>
           </div>
         </CardContent>

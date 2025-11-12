@@ -660,8 +660,8 @@ const Dashboard = () => {
       console.error(error);
     }
   };
-
-  const handleToggleDailySpecial = async (dish) => {
+  
+  /* const handleToggleDailySpecial = async (dish) => {
     try {
       const response = await fetch(
         `http://localhost:8000/api/daily-menu/toggle/`,
@@ -669,7 +669,6 @@ const Dashboard = () => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: "Bearer " + user.token, // pour sécurité admin
           },
           body: JSON.stringify({ plat_id: dish.id }),
         }
@@ -695,7 +694,7 @@ const Dashboard = () => {
       });
     }
   };
-
+ */
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -1002,14 +1001,14 @@ const Dashboard = () => {
                             >
                               <Trash2 className="w-4 h-4" />
                             </Button>
-                            <Button
+                            {/*<Button
                               size="sm"
                               variant={dish.isDailySpecial ? "solid" : "outline"}
                               className={dish.isDailySpecial ? "bg-green-500 text-white" : ""}
                               onClick={() => handleToggleDailySpecial(dish)}
                             >
                               {dish.isDailySpecial ? "Menu du jour ✅" : "Définir menu du jour"}
-                            </Button>
+                            </Button>*/}
                           </div>
                         </div>
                       </div>

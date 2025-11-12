@@ -36,8 +36,7 @@ const AIRecommendations = ({ user, menuItems, onAddToCart }: AIRecommendationsPr
                   <p className="text-sm text-gray-600 line-clamp-1">{item.description}</p>
                   <div className="flex items-center space-x-2 mt-1">
                     <span className="font-bold text-restaurant-600">{item.price.toFixed(2)} FCFA</span>
-                    <Badge variant="secondary" className="text-xs">
-                      <Sparkles className="w-3 h-3 mr-1" />
+                    <Badge className="absolute top-2 left-2 bg-success text-success-foreground">
                       Recommandé
                     </Badge>
                   </div>

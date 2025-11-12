@@ -27,6 +27,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useOrders } from "@/hooks/useOrders";
 import NotesModal from '@/components/NotesModal';
 import { v4 as uuidv4 } from 'uuid';
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 
 
 type AppState = 'scanner' | 'login' | 'menu' | 'orderType' | 'payment' | 'tracking' | 'history';
@@ -260,7 +261,6 @@ const Index = () => {
           }))
         })
       });
-      console.log("Token utilisé pour la commande :", user.token);
 
       if (!res.ok) {
         const data = await res.json();
@@ -415,6 +415,8 @@ const Index = () => {
     'autre',
   ];
 
+  const [activeCategory, setActiveCategory] = useState(categories[0]);
+
   const groupedMenuItems: Record<string, MenuItemType[]> = {};
   categories.forEach(category => {
     groupedMenuItems[category] = menu.filter(
@@ -518,52 +520,57 @@ const Index = () => {
               
               {/* User Actions */}
               {user ? (
-                <div className={`${isMobile ? 'grid grid-cols-2 gap-3' : 'flex items-center space-x-2'}`}>
-                  <Button
-                    variant="outline"
-                    size={isMobile ? 'default' : 'sm'}
-                    onClick={() => setShowLoyaltyModal(true)}
-                    className={`bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100 shadow transition rounded-xl ${isMobile ? 'min-h-12 px-4' : ''}`}
-                  >
-                    <Gift className={`${isMobile ? 'w-4 h-4 mr-2' : 'w-3 h-3 mr-1'}`} />
-                    {loyaltyPoints} pts
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size={isMobile ? 'default' : 'sm'}
-                    onClick={() => navigate('/profile', { state: { from: '/' } })}
-                    className={`shadow transition rounded-xl ${isMobile ? 'min-h-12 px-4' : ''}`}
-                  >
-                    <Settings className={`${isMobile ? 'w-4 h-4 mr-2' : 'w-4 h-4 mr-1'}`} />
-                    {isMobile ? 'Mon profil' : 'Profil'}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size={isMobile ? 'default' : 'sm'}
-                    onClick={handleShowHistory}
-                    className={`shadow transition rounded-xl ${isMobile ? 'min-h-12 px-4' : ''}`}
-                  >
-                    <History className={`${isMobile ? 'w-4 h-4 mr-2' : 'w-4 h-4 mr-1'}`} />
-                    {isMobile ? 'Historique' : 'Historique'}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size={isMobile ? 'default' : 'sm'}
-                    onClick={handleLogout}
-                    className={`shadow transition rounded-xl ${isMobile ? 'min-h-12 px-4' : ''}`}
-                  >
-                    <LogOut className={`shadow transition rounded-xl ${isMobile ? 'w-4 h-4 mr-2' : 'w-4 h-4 mr-1'}`} />
-                    {isMobile ? 'Déconnexion' : 'Déconnexion'}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size={isMobile ? 'default' : 'sm'}
-                    onClick={() => setAppState('scanner')}
-                    className={`shadow transition rounded-xl ${isMobile ? 'min-h-12 px-4' : ''}`}
-                  >
-                    <QrCode className={`${isMobile ? 'w-4 h-4 mr-2' : 'w-4 h-4 mr-1'}`} />
-                    {isMobile ? 'Changer table' : 'Changer table'}
-                  </Button>
+                <div className="sticky top-[Xpx] z-40 bg-background border-b border-border shadow-soft">
+                  <ScrollArea className="w-full whitespace-nowrap">
+                    <div className="flex gap-2 px-3 py-2">
+                      <Button
+                        variant="outline"
+                        size={isMobile ? 'default' : 'sm'}
+                        onClick={() => setShowLoyaltyModal(true)}
+                        className={`bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100 shadow transition rounded-xl ${isMobile ? 'min-h-12 px-4' : ''}`}
+                      >
+                        <Gift className={`${isMobile ? 'w-4 h-4 mr-2' : 'w-3 h-3 mr-1'}`} />
+                        {loyaltyPoints} pts
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size={isMobile ? 'default' : 'sm'}
+                        onClick={() => navigate('/profile', { state: { from: '/' } })}
+                        className={`shadow transition rounded-xl ${isMobile ? 'min-h-12 px-4' : ''}`}
+                      >
+                        <Settings className={`${isMobile ? 'w-4 h-4 mr-2' : 'w-4 h-4 mr-1'}`} />
+                        {isMobile ? 'Mon profil' : 'Profil'}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size={isMobile ? 'default' : 'sm'}
+                        onClick={handleShowHistory}
+                        className={`shadow transition rounded-xl ${isMobile ? 'min-h-12 px-4' : ''}`}
+                      >
+                        <History className={`${isMobile ? 'w-4 h-4 mr-2' : 'w-4 h-4 mr-1'}`} />
+                        {isMobile ? 'Historique' : 'Historique'}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size={isMobile ? 'default' : 'sm'}
+                        onClick={handleLogout}
+                        className={`shadow transition rounded-xl ${isMobile ? 'min-h-12 px-4' : ''}`}
+                      >
+                        <LogOut className={`shadow transition rounded-xl ${isMobile ? 'w-4 h-4 mr-2' : 'w-4 h-4 mr-1'}`} />
+                        {isMobile ? 'Déconnexion' : 'Déconnexion'}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size={isMobile ? 'default' : 'sm'}
+                        onClick={() => setAppState('scanner')}
+                        className={`shadow transition rounded-xl ${isMobile ? 'min-h-12 px-4' : ''}`}
+                      >
+                        <QrCode className={`${isMobile ? 'w-4 h-4 mr-2' : 'w-4 h-4 mr-1'}`} />
+                        {isMobile ? 'Changer table' : 'Changer table'}
+                      </Button>
+                    </div>
+                    <ScrollBar orientation="horizontal" />
+                  </ScrollArea>
                 </div>
               ) : (
                 <div className={`${isMobile ? 'flex space-x-3' : 'flex items-center space-x-2'}`}>
@@ -613,27 +620,36 @@ const Index = () => {
         )}
 
         <Tabs defaultValue={categories[0]} className="space-y-6">
-          <TabsList className={`${isMobile ? 'grid w-full grid-cols-2 h-auto' : 'grid w-full grid-cols-6'} shadow-lg bg-white rounded-xl overflow-hidden`}>
-            {categories.map((category) => (
-              <TabsTrigger 
-                key={category} 
-                value={category}
-                className={`data-[state=active]:bg-restaurant-500 data-[state=active]:text-white ${isMobile ? 'py-3 text-sm' : ''}`}
-              >
-                {category}
-              </TabsTrigger>
-            ))}
-          </TabsList>
+          <div className="sticky top-[240px] z-40 bg-background border-b border-border shadow-soft">
+            <ScrollArea className="w-full whitespace-nowrap">
+              <div className="flex p-4 gap-2">
+                {categories.map((category) => (
+                  <Button
+                    key={category}
+                    variant={activeCategory === category ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setActiveCategory(category)}
+                    className="shrink-0 transition-all duration-300"
+                  >
+                    {category}
+                  </Button>
+                ))}
+              </div>
+              <ScrollBar orientation="horizontal" />
+            </ScrollArea>
+          </div>
+
           
-          {categories.map((category) => (
-            <TabsContent key={category} value={category} className="space-y-6">
-              <MenuCategory
-                category={category}
-                items={groupedMenuItems[category] || []}
-                onAddToCart={handleAddToCart}
-              />
-            </TabsContent>
-          ))}
+          {categories.map((category) =>
+            activeCategory === category && (
+              <MenuCategory
+                key={category}
+                category={category}
+                items={groupedMenuItems[category] || []}
+                onAddToCart={handleAddToCart}
+              />
+            )
+          )}
         </Tabs>
       </div>
 
