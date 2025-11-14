@@ -27,59 +27,61 @@ const hasCustomizations = item.category !== 'boisson';
 
   return (
     <>
-      <Card className={`hover-scale cursor-pointer transition-all duration-200 hover:shadow-lg ${isMobile ? 'active:scale-95' : ''}`}>
-        <CardContent className={isMobile ? 'p-5' : 'p-4'}>
-          <div className={`flex ${isMobile ? 'flex-col space-y-3' : 'justify-between items-start'} mb-3`}>
-            <div className="flex-1">
-              <h3 className={`font-semibold text-gray-900 mb-1 ${isMobile ? 'text-lg' : 'text-lg'}`}>
-                {item.name}
-              </h3>
-              <p className={`text-gray-600 mb-2 line-clamp-2 ${isMobile ? 'text-base' : 'text-sm'}`}>
-                {item.description}
-              </p>
-              <img 
-                src={`http://localhost:8000${item.image}`} 
-                alt={item.name} 
-                style={{ width: "200px", height: "150px", objectFit: "cover" }} 
+      <Card
+        className={`group overflow-hidden hover:shadow-medium transition-all duration-300 cursor-pointer 
+        ${isMobile ? 'active:scale-95' : ''}`} >
+        <CardContent className="p-0">
+          
+          {/* Image + Badge + Bouton + Animation */}
+          <div className="relative">
+            <div className="aspect-[4/3] overflow-hidden bg-muted">
+              <img
+                src={`http://localhost:8000${item.image}`}
+                alt={item.name}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               />
-              
-              {item.allergens && item.allergens.length > 0 && (
-                <div className="flex flex-wrap gap-1 mb-2">
-                  {item.allergens.map((allergen) => (
-                    <Badge key={allergen} variant="outline" className={isMobile ? 'text-sm' : 'text-xs'}>
-                      {allergen}
-                    </Badge>
-                  ))}
-                </div>
-              )}
             </div>
-            
-            <div className={`${isMobile ? 'self-start' : 'ml-4'} text-right`}>
-              <p className={`font-bold text-restaurant-600 ${isMobile ? 'text-2xl' : 'text-xl'}`}>
-                {item.price.toFixed(2)}FCFA
-              </p>
-            </div>
-          </div>
 
-          <div className={`flex ${isMobile ? 'flex-col space-y-3' : 'justify-between items-center'}`}>
-            {hasCustomizations && (
-              <div className={`flex items-center text-restaurant-500 ${isMobile ? 'text-base justify-center' : 'text-sm'}`}>
-                <ChefHat className={`mr-1 ${isMobile ? 'w-5 h-5' : 'w-4 h-4'}`} />
-                <span>Personnalisable</span>
-              </div>
-            )}
-            
             <Button
-              onClick={() => hasCustomizations ? setShowCustomization(true) : handleAddToCart()}
-              className="bottom-2 right-2 rounded-full bg-restaurant-500 text-white shadow hover:scale-110"
               size="icon"
+              className="absolute bottom-2 right-2 rounded-full bg-restaurant-500 text-white 
+              shadow-medium hover:scale-110 transition-transform"
+              onClick={(e) => {
+                e.stopPropagation();
+                hasCustomizations ? setShowCustomization(true) : handleAddToCart();
+              }}
             >
               <Plus className="h-5 w-5" />
-              
             </Button>
           </div>
+
+          {/* Texte */}
+          <div className="p-4">
+            <h3 className="font-semibold text-lg text-foreground mb-1">{item.name}</h3>
+
+            <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+              {item.description}
+            </p>
+
+            {/* Allergènes */}
+            {item.allergens?.length > 0 && (
+              <div className="flex flex-wrap gap-1 mb-3">
+                {item.allergens.map((a) => (
+                  <Badge key={a} variant="outline" className="text-xs">
+                    {a}
+                  </Badge>
+                ))}
+              </div>
+            )}
+
+            <p className="text-xl font-bold text-primary">
+              {item.price.toFixed(2)} FCFA
+            </p>
+          </div>
+
         </CardContent>
       </Card>
+
 
       {showCustomization && (
         <CustomizationModal

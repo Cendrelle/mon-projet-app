@@ -1,9 +1,7 @@
 import { MenuItem } from '@/types/restaurant';
 import MenuItemCard from './MenuItemCard';
-import { Swiper, SwiperSlide } from 'swiper/react';
 import 'swiper/css';
 import 'swiper/css/pagination';
-import { Mousewheel, Pagination } from 'swiper/modules';
 
 interface MenuCategoryProps {
   category: string;
@@ -32,25 +30,18 @@ const MenuCategory = ({ category, items, onAddToCart }: MenuCategoryProps) => {
       <h2 className={`text-2xl font-bold mb-6 pb-2 border-b ${colorClass} tracking-wide uppercase`}>
         {category}
       </h2>
-      {/* Carrousel vertical */}
-      <Swiper
-        direction="vertical"
-        slidesPerView={1}
-        spaceBetween={28}
-        mousewheel={true}
-        pagination={{ clickable: true }}
-        modules={[Mousewheel, Pagination]}
-        className="h-[450px] rounded-2xl"
-      >
-        {itemsInCategory.map((item) => (
-          <SwiperSlide key={item.id}>
-            <div className="bg-orange-100 rounded-xl shadow hover:shadow-lg transition p-4">
+      
+        {/* Grille 3 colonnes */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {itemsInCategory.map((item) => (
+            <div key={item.id} className="bg-orange-100 rounded-xl shadow hover:shadow-lg transition p-4">
               <MenuItemCard item={item} onAddToCart={onAddToCart} />
             </div>
-          </SwiperSlide>
-        ))}
-      </Swiper>
-    </section>
+          ))}
+        </div>
+      </section>
+
+
   );
 }
 
