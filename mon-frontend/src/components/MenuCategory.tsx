@@ -40,8 +40,6 @@ const MenuCategory = ({ category, items, onAddToCart }: MenuCategoryProps) => {
           ))}
         </div>
       </section>
-
-
   );
 }
 

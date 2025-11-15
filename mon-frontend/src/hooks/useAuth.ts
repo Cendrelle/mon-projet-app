@@ -16,6 +16,8 @@ export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState("");
+
 
   useEffect(() => {
     const token = localStorage.getItem('access_token');
@@ -28,33 +30,39 @@ export const useAuth = () => {
   }, []);
 
   const login = async (email: string, password: string) => {
-    const res = await fetch('http://localhost:8000/api/login/', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    });
-    const data = await res.json();
-    setUser({
+    try {
+      const res = await fetch('http://localhost:8000/api/login/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      setUser({
 
-      id: data.id, // Si tu veux l'id, il faut soit le renvoyer dans le login, soit faire une requête 'me'
-      name: '',
-      email: data.email,
-      token: data.access,
-      role: data.role
-    });
-    
-    //const data = await res.json();
+        id: data.id, // Si tu veux l'id, il faut soit le renvoyer dans le login, soit faire une requête 'me'
+        name: '',
+        email: data.email,
+        token: data.access,
+        role: data.role
+      });
+      
+      //const data = await res.json();
 
-    if (!res.ok) throw new Error(data.detail || 'Login failed');
+      if (!res.ok) throw new Error(data.detail || 'Login failed');
 
-    localStorage.setItem('access_token', data.access);
-    localStorage.setItem("refresh_token", data.refresh);
-    setAccessToken(data.access);
+      localStorage.setItem('access_token', data.access);
+      localStorage.setItem("refresh_token", data.refresh);
+      setAccessToken(data.access);
 
-    // Récupérer le profil après login
-    const profile = await fetchProfile(data.access);
+      // Récupérer le profil après login
+      const profile = await fetchProfile(data.access);
 
-    return profile; 
+      return profile; 
+    } catch (err: any) {
+      console.error(err);
+      setErrorMessage(err.message || 'Une erreur est survenue');
+      throw err;
+    }
   };
 
   const register = async (

@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { User, Gift, X, LogIn } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import ErrorModal from './ErroModal';
 
 interface LoginPromptProps {
   onLogin: (user: any) => void;
@@ -47,19 +48,25 @@ const LoginPrompt = ({ onLogin, onSkip, onClose }: LoginPromptProps) => {
         const user = await login(email, password);  // <- API réelle
         onLogin(user);  // transmet le profil récupéré au parent
         if (!email || !password) {
-          alert("Veuillez entrer votre email et votre mot de passe.");
+          setErrorMessage("Veuillez entrer votre email et votre mot de passe.");
           return;
         }
       }
     } catch (error: any) {
       console.error("Erreur d'auth", error);
-      alert(error.message);
+      setErrorMessage(error.message);
     }
   };
 
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      {errorMessage && (
+      <ErrorModal 
+        message={errorMessage}
+        onClose={() => setErrorMessage(null)}
+      />
+    )}
       <Card className="w-full max-w-md">
         <CardHeader className="relative">
           <button

@@ -20,13 +20,13 @@ import OrderHistory from '@/components/OrderHistory';
 import RatingNotification from '@/components/RatingNotification';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs } from '@/components/ui/tabs';
 import { QrCode, MapPin, User as UserIcon, Gift, LogOut, History, Settings } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { useOrders } from "@/hooks/useOrders";
 import NotesModal from '@/components/NotesModal';
-import { v4 as uuidv4 } from 'uuid';
+import ErrorModal from '@/components/ErroModal';
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 
 
