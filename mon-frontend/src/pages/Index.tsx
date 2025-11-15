@@ -244,11 +244,11 @@ const Index = () => {
         .filter(Boolean)
         .join(' | '); // tu peux changer le séparateur ici si tu veux des sauts de ligne
 
-      const res = await fetch('http://localhost:8000/api/valider-commande/', {
+      const res = await authFetch('http://localhost:8000/api/valider-commande/', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json',
+        /* headers: { 'Content-Type': 'application/json',
           //Authorization: 'Bearer ' + user.token
-         },
+         }, */
         body: JSON.stringify({
           type_service: orderType === 'dine-in' ? 'sur_place' : 'emporter',
           table_number: tableNumInt,

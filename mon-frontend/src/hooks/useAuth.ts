@@ -10,6 +10,7 @@ export interface User {
   role: 'ADMIN' | 'CUISINIER' | 'CLIENT';
   loyaltyPoints?: number;
   date_joined: string;
+  token?: string;
 }
 
 export const useAuth = () => {
@@ -37,14 +38,7 @@ export const useAuth = () => {
         body: JSON.stringify({ email, password }),
       });
       const data = await res.json();
-      setUser({
-
-        id: data.id, // Si tu veux l'id, il faut soit le renvoyer dans le login, soit faire une requête 'me'
-        name: '',
-        email: data.email,
-        token: data.access,
-        role: data.role
-      });
+      setAccessToken(data.access);
       
       //const data = await res.json();
 
