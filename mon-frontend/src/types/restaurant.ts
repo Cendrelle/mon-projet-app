@@ -47,6 +47,7 @@ export interface Order {
     comment?: string;
   };
   commande_uuid: string; 
+  earned_points?: number; 
 }
 
 export interface Restaurant {

@@ -292,9 +292,10 @@ const Index = () => {
           id: user.id,
           name: user.name,
           email: user.email,
-          loyaltyPoints: user.loyaltyPoints = data.total_points
+          loyaltyPoints: data.loyalty_points,
         } : undefined,
         commande_uuid: data.commande_uuid,
+        earned_points: data.earned_points ?? 0
       };
 
       addOrder(order);
@@ -306,10 +307,7 @@ const Index = () => {
       if (user?.id) {
         setUser({
           ...user,
-          loyaltyPoints: {
-            total_points: data.loyalty_points, // valeur renvoyée par le backend
-            earned_points: data.earned_points ?? 0, // si tu veux montrer ce qui vient d'être gagné
-          }
+          loyaltyPoints: data.loyalty_points,
         });
         toast({
           title: "Commande confirmée !",
